@@ -1,0 +1,240 @@
+/* src/styles/screens.css — 맵·보상·객잔·장터·결과. 전투 화면과 같은 카드/계열
+   어휘(combat.css)를 그대로 물려 쓰고, 여기서는 다섯 화면의 뼈대만 잡는다. */
+
+/* ── 공용: 화면 안 세로 스크롤 뼈대 ───────────────────────────────────────── */
+.screen.map,
+.screen.reward,
+.screen.rest,
+.screen.shop,
+.screen.result {
+  position: relative;
+  padding: 0.75rem 0.9rem;
+  padding-bottom: calc(0.9rem + env(safe-area-inset-bottom));
+  gap: 0.75rem;
+}
+.screen.map h1,
+.screen.reward h1,
+.screen.rest h1,
+.screen.shop h1 {
+  margin: 0.2rem 0 0;
+  font-size: 1.1rem;
+  letter-spacing: 0.15em;
+  color: var(--gold);
+  font-weight: 400;
+}
+
+/* ── 공용: 목록형 모달(덱 보기 · 수련 고르기) ────────────────────────────── */
+.modal-view {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  background: var(--ink);
+  padding: 0.75rem;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+.modal-head { display: flex; align-items: center; gap: 0.75rem; }
+.modal-head h2 { margin: 0; font-size: 1rem; flex: 1; color: var(--paper); font-weight: 400; }
+
+.deck-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.deck-list li { list-style: none; }
+.deck-list-empty { opacity: 0.6; font-size: 0.85rem; padding: 0.5rem 0.2rem; }
+
+/* card-row 는 combat.css 가 <li> 기준으로 그리드를 잡아 둔다. 여기서는 같은
+   그리드를 <button> 에 얹으면서 브라우저 기본 버튼 꾸밈만 걷어낸다. */
+button.deck-row {
+  appearance: none;
+  border: none;
+  border-bottom: 1px solid rgba(222, 211, 189, 0.1);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+}
+button.deck-row:hover { background: rgba(222, 211, 189, 0.06); }
+button.deck-row:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+
+/* ── 1. 맵 ───────────────────────────────────────────────────────────────── */
+.map-topbar {
+  position: sticky;
+  top: 0;
+  background: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(222, 211, 189, 0.15);
+}
+.map-stats { display: flex; gap: 0.75rem; flex-wrap: wrap; font-size: 0.85rem; flex: 1; }
+.map-stat { opacity: 0.9; }
+
+.map-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 0.5rem 0 1rem;
+}
+.map-layer {
+  display: flex;
+  justify-content: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.map-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 80px;
+  padding: 0.55rem 0.5rem;
+  border: 1px solid rgba(222, 211, 189, 0.3);
+  border-radius: 8px;
+  background: rgba(222, 211, 189, 0.03);
+  color: var(--paper);
+  font-family: inherit;
+  cursor: pointer;
+}
+.map-node-icon { font-size: 1.3rem; line-height: 1; }
+.map-node-label { font-size: 0.75rem; }
+
+.map-node.status-reachable {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px rgba(201, 162, 39, 0.25);
+}
+.map-node.status-reachable:hover { background: rgba(201, 162, 39, 0.1); }
+.map-node.status-current { border-color: var(--gold); background: rgba(201, 162, 39, 0.18); }
+.map-node.status-past,
+.map-node.status-locked { opacity: 0.4; cursor: default; }
+.map-node:disabled { cursor: default; }
+.map-node:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.map-node.type-boss { border-width: 2px; }
+.map-node.type-elite .map-node-icon { color: var(--gold); }
+.map-node.type-rest .map-node-icon { color: var(--gyeong); }
+.map-node.type-shop .map-node-icon { color: var(--nae); }
+.map-node.type-battle .map-node-icon { color: var(--wai); }
+
+/* ── 2. 보상 ─────────────────────────────────────────────────────────────── */
+.reward-gold { font-size: 1.05rem; color: var(--gold); font-weight: 700; margin: 0; }
+
+.reward-relic {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  background: rgba(201, 162, 39, 0.08);
+}
+.reward-relic .relic-hanja { font-weight: 700; color: var(--gold); font-size: 1.1rem; }
+.reward-relic .relic-name { font-weight: 700; }
+.reward-relic .relic-text { flex: 1 0 100%; font-size: 0.8rem; opacity: 0.85; }
+
+.reward-cards {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 0.3rem 0;
+}
+.reward-card-btn {
+  flex: 0 1 min(30vw, 150px);
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  min-width: 110px;
+}
+.reward-card-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 8px; }
+.reward-card-btn .card { min-height: 190px; }
+
+.reward-skip { align-self: center; margin-top: 0.4rem; }
+
+/* ── 3. 객잔 ──────────────────────────────────────────────────────────────── */
+.rest-actions { display: flex; flex-direction: column; gap: 0.6rem; padding-top: 0.5rem; }
+.rest-action { width: 100%; padding: 0.9em 1em; font-size: 0.95rem; }
+.rest-action:disabled { opacity: 0.4; cursor: default; }
+
+/* ── 4. 장터 ──────────────────────────────────────────────────────────────── */
+.shop-hint { font-size: 0.9rem; opacity: 0.85; margin: 0; }
+
+.shop-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.shop-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid rgba(222, 211, 189, 0.25);
+  border-radius: 8px;
+}
+.shop-item .card { min-height: 0; width: 90px; flex: 0 0 auto; }
+.shop-item-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+.shop-item-price { color: var(--gold); font-weight: 700; white-space: nowrap; }
+.shop-buy:disabled { opacity: 0.4; cursor: default; }
+
+.shop-relic,
+.shop-remove {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.shop-relic .relic-hanja,
+.shop-remove .relic-hanja { font-weight: 700; color: var(--gold); }
+.shop-relic .relic-name,
+.shop-remove .relic-name { font-weight: 700; }
+.shop-relic .relic-text,
+.shop-remove .relic-text { font-size: 0.75rem; opacity: 0.8; }
+
+.shop-leave { align-self: center; margin-top: 0.4rem; }
+
+/* ── 5. 결과 ──────────────────────────────────────────────────────────────── */
+.screen.result { align-items: center; justify-content: center; text-align: center; gap: 1rem; }
+.result-headline { margin: 0; font-size: 2.4rem; letter-spacing: 0.2em; }
+.screen.result.victory .result-headline { color: var(--gold); }
+.screen.result.defeat .result-headline { color: var(--wai); }
+
+.result-stats {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 0.3rem 0.8rem;
+  margin: 0;
+  font-size: 0.95rem;
+}
+.result-stats dt { opacity: 0.7; text-align: right; }
+.result-stats dd { margin: 0; text-align: left; font-weight: 700; }
+
+.result-seed-row { display: flex; align-items: center; gap: 0.6rem; }
+.result-seed-feedback { font-size: 0.8rem; color: var(--gold); min-height: 1em; }
+.result-title { margin-top: 0.5rem; }
+
+/* ── 넓은 화면 ─────────────────────────────────────────────────────────────── */
+@media (min-width: 520px) {
+  .rest-actions { flex-direction: row; }
+  .rest-action { flex: 1 1 0; }
+}

@@ -1,17 +1,61 @@
-import type { AppApi } from '../app';
+// src/ui/screens/reward.ts
+//
+// 엽전을 먼저 보이고, 기물 보상이 있으면 카드 위에 따로 띄운 뒤, 초식 3장을
+// 실제 카드 면(전투 화면과 같은 컴포넌트)으로 나란히 놓는다. 어떤 카드를
+// 주는지·기물이 무엇인지는 전부 `run.reward` 가 이미 정해 온 값이고, 여기서는
+// 옮겨 적기만 한다.
+import { CONTENT } from '../../engine/gamedata';
 import type { RunState } from '../../engine/run';
+import type { AppApi } from '../app';
+import { cardAriaLabel, renderCardFace } from '../components/card';
 import { el } from '../dom';
 
-// Task 16 에서 실제 보상(카드 선택) UI로 교체될 자리표시. '맵으로' 버튼은
-// 카드를 받지 않고 지나가는 실제 RunAction(takeCard: null)을 그대로 써서
-// 진짜로 지도 화면까지 돌아간다.
 export function renderReward(api: AppApi, run: RunState): HTMLElement {
-  return el('main', { class: 'screen' }, [
-    el('h1', { textContent: '보상' }),
-    el('p', { textContent: '(자리표시) Task 16에서 실제 보상 화면으로 교체됩니다.' }),
-    el('button', {
-      class: 'btn', textContent: '맵으로',
-      onclick: () => api.dispatch({ type: 'takeCard', cardId: null }),
-    }),
-  ]);
+  const reward = run.reward;
+  const root = el('main', { class: 'screen reward' });
+  root.append(el('h1', { textContent: '보상' }));
+
+  if (!reward) {
+    // 도달할 수 없는 상태(run.ts 가 screen='reward' 와 reward 를 함께 세운다)지만,
+    // 손상된 저장이 여기까지 왔을 때 흰 화면 대신 나갈 길을 준다.
+    root.append(
+      el('p', { textContent: '보상 정보가 없다.' }),
+      el('button', {
+        class: 'btn', type: 'button', textContent: '맵으로',
+        onclick: () => api.dispatch({ type: 'takeCard', cardId: null }),
+      }),
+    );
+    return root;
+  }
+
+  root.append(el('p', { class: 'reward-gold', textContent: `엽전 ${reward.gold} 획득` }));
+
+  if (reward.relic) {
+    const def = CONTENT.relic(reward.relic);
+    const box = el('div', { class: 'reward-relic' }, [
+      el('span', { class: 'relic-hanja', textContent: def.hanja }),
+      el('span', { class: 'relic-name', textContent: def.name }),
+      el('span', { class: 'relic-text', textContent: def.text }),
+    ]);
+    box.setAttribute('role', 'img');
+    box.setAttribute('aria-label', `기물 획득: ${def.name}, ${def.text}`);
+    root.append(box);
+  }
+
+  const cardsRow = el('div', { class: 'reward-cards' });
+  for (const cardId of reward.cards) {
+    const def = CONTENT.card(cardId);
+    const face = renderCardFace(def, { upgraded: false, playable: true });
+    const btn = el('button', { class: 'reward-card-btn', type: 'button' }, [face]);
+    btn.setAttribute('aria-label', `${cardAriaLabel(def, false)}, 이 초식을 보상으로 받는다`);
+    btn.addEventListener('click', () => api.dispatch({ type: 'takeCard', cardId }));
+    cardsRow.append(btn);
+  }
+  root.append(cardsRow);
+
+  const skip = el('button', { class: 'btn quiet reward-skip', type: 'button', textContent: '넘기기' });
+  skip.addEventListener('click', () => api.dispatch({ type: 'takeCard', cardId: null }));
+  root.append(skip);
+
+  return root;
 }

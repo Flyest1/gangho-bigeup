@@ -262,6 +262,34 @@ describe('막 진행', () => {
   });
 });
 
+describe('카드 제거', () => {
+  it('제거 항목을 사면 제거 대기 상태가 된다', () => {
+    const r = startRun('제거', CONTENT);
+    const s = { ...r, screen: 'shop' as const, player: { ...r.player, gold: 200 },
+      shop: [{ kind: 'remove' as const, id: 'remove', price: 70 }] };
+    const after = applyRunAction(s, { type: 'buy', index: 0 }, CONTENT);
+    expect(after.pendingRemoval).toBe(true);
+    expect(after.player.gold).toBe(130);
+  });
+
+  it('대기 상태에서만 카드가 지워진다', () => {
+    const r = startRun('제거2', CONTENT);
+    const uid = r.player.deck[0]!.uid;
+    expect(applyRunAction(r, { type: 'removeCard', uid }, CONTENT).player.deck).toHaveLength(10);
+    const armed = { ...r, screen: 'shop' as const, pendingRemoval: true };
+    const done = applyRunAction(armed, { type: 'removeCard', uid }, CONTENT);
+    expect(done.player.deck).toHaveLength(9);
+    expect(done.pendingRemoval).toBe(false);
+  });
+
+  it('덱이 1장이면 지울 수 없다', () => {
+    const r = startRun('제거3', CONTENT);
+    const one = { ...r, screen: 'shop' as const, pendingRemoval: true,
+      player: { ...r.player, deck: r.player.deck.slice(0, 1) } };
+    expect(applyRunAction(one, { type: 'removeCard', uid: one.player.deck[0]!.uid }, CONTENT).player.deck).toHaveLength(1);
+  });
+});
+
 describe('결정성', () => {
   it('같은 시드에 같은 액션 열은 같은 결과를 낸다', () => {
     const play = (): RunState => {

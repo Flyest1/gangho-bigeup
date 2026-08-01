@@ -28,6 +28,8 @@ export interface RunState {
   map: GameMap;
   currentNodeId: string | null;
   screen: RunScreen;
+  /** 장터에서 제거 항목을 사서, 다음 removeCard 액션을 기다리는 중인가. */
+  pendingRemoval: boolean;
   player: {
     hp: number;
     maxHp: number;
@@ -51,6 +53,7 @@ export type RunAction =
   | { type: 'rest'; choice: 'heal' }
   | { type: 'rest'; choice: 'upgrade'; uid: string }
   | { type: 'buy'; index: number }
+  | { type: 'removeCard'; uid: string }
   | { type: 'leave' };
 
 const REST_HEAL_RATIO = 0.3;
@@ -65,6 +68,20 @@ const REST_HEAL_RATIO = 0.3;
  */
 export function effectiveMaxHp(run: RunState, content: ContentIndex): number {
   return run.player.maxHp + relicMods(run.player.relics, content).maxHp;
+}
+
+/**
+ * 객잔 휴식이 실제로 회복시킬 체력. 화면이 `REST_HEAL_RATIO` 를 따로 알 필요 없이
+ * 이 값만 그대로 적으면 되도록 내보낸다 — 그러지 않으면 화면이 비율을 다시 베껴
+ * 적다가 엔진 쪽 비율이 바뀌었을 때 조용히 어긋난다.
+ */
+export function restHealAmount(run: RunState, content: ContentIndex): number {
+  return Math.floor(effectiveMaxHp(run, content) * REST_HEAL_RATIO);
+}
+
+/** 이 카드가 아직 강화되지 않았고 강화판을 갖고 있어 수련 대상이 될 수 있는가. */
+export function canUpgrade(card: CardInstance, content: ContentIndex): boolean {
+  return !card.upgraded && content.card(card.defId).upgrade !== undefined;
 }
 
 export function startRun(seedText: string, content: ContentIndex): RunState {
@@ -85,6 +102,7 @@ export function startRun(seedText: string, content: ContentIndex): RunState {
     map,
     currentNodeId: null,
     screen: 'map',
+    pendingRemoval: false,
     player: {
       hp: school.maxHp,
       maxHp: school.maxHp,
@@ -282,14 +300,14 @@ export function applyRunAction(
       if (run.screen !== 'rest') return run;
       if (action.choice === 'heal') {
         const cap = effectiveMaxHp(run, content);
-        const heal = Math.floor(cap * REST_HEAL_RATIO);
+        const heal = restHealAmount(run, content);
         return {
           ...run, screen: 'map',
           player: { ...run.player, hp: Math.min(cap, run.player.hp + heal) },
         };
       }
       const card = run.player.deck.find((c) => c.uid === action.uid);
-      if (!card || card.upgraded || !content.card(card.defId).upgrade) return run;
+      if (!card || !canUpgrade(card, content)) return run;
       return {
         ...run, screen: 'map',
         player: {
@@ -320,7 +338,17 @@ export function applyRunAction(
       if (item.kind === 'relic') {
         return { ...run, shop, player: { ...run.player, gold, relics: [...run.player.relics, item.id] } };
       }
-      return { ...run, shop, player: { ...run.player, gold } };
+      return { ...run, shop, pendingRemoval: true, player: { ...run.player, gold } };
+    }
+
+    case 'removeCard': {
+      if (!run.pendingRemoval || run.player.deck.length <= 1) return run;
+      if (!run.player.deck.some((c) => c.uid === action.uid)) return run;
+      return {
+        ...run,
+        pendingRemoval: false,
+        player: { ...run.player, deck: run.player.deck.filter((c) => c.uid !== action.uid) },
+      };
     }
 
     case 'leave':

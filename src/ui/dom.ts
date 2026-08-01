@@ -21,3 +21,43 @@ export function el<K extends keyof HTMLElementTagNameMap>(
 export function clear(node: HTMLElement): void {
   while (node.firstChild) node.removeChild(node.firstChild);
 }
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), '
+  + 'textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/**
+ * 모달 오버레이 안에 포커스를 가둔다. 여는 순간 첫 초점 요소로 포커스를 옮기고,
+ * Tab이 오버레이 밖으로 새지 않게 순환시킨다. 반환된 해제 함수를 오버레이를
+ * 걷어내기 *직전에* 부르면, 그 오버레이를 열기 전 포커스가 있던 요소로 되돌아간다.
+ * (dispatch로 화면 전체가 새로 그려져 사라지는 경우는 대상이 이미 없으니 그냥 넘어간다.)
+ */
+export function trapFocus(container: HTMLElement): () => void {
+  const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+  const focusables = (): HTMLElement[] => [...container.querySelectorAll<HTMLElement>(FOCUSABLE)];
+  focusables()[0]?.focus();
+
+  const onKeydown = (event: KeyboardEvent): void => {
+    if (event.key !== 'Tab') return;
+    const items = focusables();
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (!first || !last) return;
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
+  container.addEventListener('keydown', onKeydown);
+
+  return () => {
+    container.removeEventListener('keydown', onKeydown);
+    if (opener && opener.isConnected) opener.focus();
+  };
+}

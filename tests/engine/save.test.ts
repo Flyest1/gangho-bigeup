@@ -19,6 +19,16 @@ describe('왕복', () => {
   it('격리된 구획이 없다', () => {
     expect(parseSave(serialize(emptySave())).quarantined).toEqual([]);
   });
+
+  it('pendingRemoval이 없는 구버전 저장도 격리되지 않고 살아남는다', () => {
+    const legacy = JSON.parse(serialize({ ...emptySave(), run }));
+    delete legacy.run.pendingRemoval;
+    const out = parseSave(JSON.stringify(legacy));
+    expect(out.quarantined).toEqual([]);
+    expect(out.save.run).not.toBeNull();
+    expect('pendingRemoval' in out.save.run!).toBe(false);
+    expect(out.save.run!.seedText).toBe(run.seedText);
+  });
 });
 
 describe('손상 격리', () => {
