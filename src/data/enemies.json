@@ -228,7 +228,7 @@
     ]
   },
   {
-    "id": "maechopung", "name": "매초풍", "hanja": "梅超風",
+    "id": "maechopung", "name": "매초풍", "hanja": "梅超風", "portrait": "maechopung",
     "hp": [96, 96], "startStance": "gyeong", "tier": "boss", "act": 1,
     "actions": [
       {
@@ -246,7 +246,7 @@
     ]
   },
   {
-    "id": "guchunin", "name": "구천인", "hanja": "九天人",
+    "id": "guchunin", "name": "구천인", "hanja": "九天人", "portrait": "guchunin",
     "hp": [132, 132], "startStance": "wai", "tier": "boss", "act": 2,
     "actions": [
       {
@@ -267,7 +267,7 @@
     ]
   },
   {
-    "id": "guyangbong", "name": "구양봉", "hanja": "歐陽鋒",
+    "id": "guyangbong", "name": "구양봉", "hanja": "歐陽鋒", "portrait": "guyangbong",
     "hp": [178, 178], "startStance": "nae", "tier": "boss", "act": 3,
     "actions": [
       {

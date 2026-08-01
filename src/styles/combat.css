@@ -57,7 +57,24 @@
   height: 100%;
   overflow: hidden;
   position: relative;
+  /* .combat-backdrop이 음수 z-index로 이 화면 안에서만 맨 뒤에 깔리게 한다 —
+     isolation이 없으면 음수 z-index가 이 stacking context를 벗어나 문서 전체
+     기준으로 계산돼, 엉뚱하게 화면 전체 아래로 숨어버릴 수 있다. */
+  isolation: isolate;
   font-size: 16px;
+}
+
+/* 막(act)별 원경 산세. 장식일 뿐이라 클릭을 가로채지 않고(pointer-events:none),
+   스크린리더도 건너뛴다(art/svg.ts가 aria-hidden을 이미 붙인다). */
+.combat-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  color: var(--paper);
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 /* ── 1. 상단바 ─────────────────────────────────────────────────────────── */
@@ -189,6 +206,25 @@
 @keyframes enemy-beckon { to { background: rgba(201, 162, 39, 0.12); } }
 .enemy:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
+/* 초상 — 보스 셋은 실제 그림(<img>), 나머지는 defId 해시로 그린 얼굴(<svg>).
+   둘 다 이 크기 규칙 하나로 맞춘다. */
+.enemy-portrait {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  align-self: flex-start;
+}
+.enemy-portrait-boss { width: 56px; height: 56px; }
+.enemy-portrait .portrait-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid rgba(222, 211, 189, 0.3);
+}
+.enemy-portrait .fallback-face { width: 100%; height: 100%; color: var(--paper); opacity: 0.92; }
+
 .enemy-head { display: flex; align-items: baseline; gap: 0.35rem; flex-wrap: wrap; }
 .enemy-name { font-size: 0.95rem; font-weight: 700; }
 .enemy-hanja { font-size: 0.75rem; opacity: 0.6; }
@@ -314,6 +350,9 @@
 
 .card {
   position: relative;
+  /* .card-sigil이 음수 z-index로 이름/설명 뒤에 깔리게 한다 — 카드 뿌리 안에서만
+     그 순서가 성립하도록 여기서 stacking context를 끊는다. */
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
@@ -328,6 +367,20 @@
     #1d1917;
   color: var(--paper);
   text-align: left;
+}
+
+/* 계열 먹선 문양 — 장식용 워터마크. 계열 구분은 여전히 .card-line(도형+한자)이
+   맡으므로, 이 문양이 안 보여도(색맹, 저시력, 프린트) 잃는 정보는 없다. */
+.card-sigil {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  margin: auto;
+  width: 68%;
+  height: 68%;
+  color: var(--line, var(--paper));
+  opacity: 0.16;
+  pointer-events: none;
 }
 .hand-slot.selected .card { box-shadow: 0 0 0 2px var(--gold); }
 .card.unplayable { opacity: 0.45; }

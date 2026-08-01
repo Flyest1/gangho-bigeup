@@ -1,4 +1,5 @@
 // src/ui/components/enemy.ts
+import { portraitFor } from '../../art/portraits';
 import { CONTENT } from '../../engine/gamedata';
 import { LINE_LABEL, matchup } from '../../engine/stance';
 import type { EnemyState, Intent, IntentKind, Stance } from '../../engine/types';
@@ -68,8 +69,11 @@ export interface EnemyOpts {
  */
 export function renderEnemy(enemy: EnemyState, opts: EnemyOpts): HTMLElement {
   let hanja = '';
+  let tier: 'normal' | 'elite' | 'boss' = 'normal';
   try {
-    hanja = CONTENT.enemy(enemy.defId).hanja;
+    const def = CONTENT.enemy(enemy.defId);
+    hanja = def.hanja;
+    tier = def.tier;
   } catch {
     hanja = '';
   }
@@ -79,6 +83,12 @@ export function renderEnemy(enemy: EnemyState, opts: EnemyOpts): HTMLElement {
     type: 'button',
     dataset: { hp: String(enemy.hp), uid: enemy.uid, fkey: `enemy:${enemy.uid}` },
   });
+
+  // 초상 — 보스 셋(매초풍·구천인·구양봉)은 실제 그림, 나머지는 defId 해시로
+  // 그리는 얼굴. 이름표는 이미 이름·한자로 신원을 밝히므로 초상은 순수 장식이다.
+  const portrait = portraitFor(enemy.defId);
+  portrait.classList.add('enemy-portrait', `enemy-portrait-${tier}`);
+  node.append(portrait);
 
   const head = el('span', { class: 'enemy-head' }, [
     el('span', { class: 'enemy-name', textContent: enemy.name }),

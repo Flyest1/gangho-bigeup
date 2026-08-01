@@ -5,20 +5,80 @@
 // 규칙은 하나도 여기서 다시 계산하지 않는다. 발동 가능 여부는 `canPlay`, 상성은
 // `matchup`, 연계는 `comboFires`, 강화 수치는 `effectiveCard` 가 낸 값을 그대로
 // 옮겨 적기만 한다. 화면이 두 번째 규칙 구현이 되는 순간 둘은 반드시 어긋난다.
-import { canPlay, effectiveCard } from '../../engine/combat';
+import { inkBackdrop } from '../../art/svg';
+import { sfx } from '../../audio/sfx';
+import { applyAction, canPlay, effectiveCard, type CombatAction } from '../../engine/combat';
 import { CONTENT } from '../../engine/gamedata';
 import type { RunState } from '../../engine/run';
+import { comboFires, matchup } from '../../engine/stance';
 
-import type { CardDef, CardInstance, CombatState, EnemyState, Line } from '../../engine/types';
+import type {
+  CardDef, CardInstance, CombatState, EnemyState, Line, Matchup, Stance,
+} from '../../engine/types';
 import type { AppApi } from '../app';
 import { renderStatusBadges, renderMeter } from '../components/bars';
 import { cardAriaLabel, renderCardFace, renderCardRow } from '../components/card';
 import { renderEnemy } from '../components/enemy';
 import {
-  MATCHUP_LABEL, renderLineChip, renderStanceBar, summarizeVerdict, verdictAriaText,
+  MATCHUP_LABEL, comboThreshold, renderLineChip, renderStanceBar, summarizeVerdict, verdictAriaText,
 } from '../components/stance';
 import { clear, el } from '../dom';
 import { bindCombatKeys } from '../input';
+
+/**
+ * 여러 대상 중 하나라도 파훼면 파훼로, 아니면 저항/평타 중 있는 대로 대표 판정을
+ * 고른다. 소리는 한 번만 나므로 "이번 발동에서 가장 중요한 신호"를 골라야 한다 —
+ * 파훼가 이 게임에서 가장 중요한 순간이라는 브리핑의 요구를 그대로 따른다.
+ */
+function worstMatchup(pairs: Array<{ attacker: Line; defender: Stance }>): Matchup {
+  let seen: Matchup = 'neutral';
+  for (const { attacker, defender } of pairs) {
+    const m = matchup(attacker, defender);
+    if (m === 'break') return 'break';
+    if (m === 'resisted') seen = 'resisted';
+  }
+  return seen;
+}
+
+/**
+ * 카드 한 장을 실제로 낸 뒤(before→after)의 결과를 보고 소리를 고른다. 규칙을
+ * 다시 계산하지 않는다 — `applyAction`이 낸 결과를 진단만 한다. 상성만은
+ * 예외인데, `computeDamage`가 판정 자체를 상태에 남기지 않으므로 "친 계열 대
+ * 맞기 전 자세"를 `matchup`(엔진 함수)에 그대로 넣어 다시 물어보는 것뿐이다.
+ */
+function reactToCardPlay(def: CardDef, before: CombatState, after: CombatState): void {
+  if (after.player.block > before.player.block) sfx.play('block');
+
+  const struck = before.enemies.filter((e) => {
+    const now = after.enemies.find((a) => a.uid === e.uid);
+    return !now || now.hp < e.hp || now.block < e.block;
+  });
+  if (struck.length > 0 && def.line !== 'sul') {
+    const m = worstMatchup(struck.map((e) => ({ attacker: def.line, defender: e.stance })));
+    sfx.play(m === 'break' ? 'break' : 'hit');
+  }
+
+  const threshold = comboThreshold(before);
+  if (!comboFires(before.combo, threshold) && comboFires(after.combo, threshold)) {
+    sfx.play('combo');
+  }
+}
+
+/** 적 턴 전체(여러 적이 한꺼번에 움직일 수 있다)의 결과를 보고 소리를 고른다. */
+function reactToEnemyTurn(before: CombatState, after: CombatState): void {
+  if (after.player.hp < before.player.hp) {
+    const attackers = before.enemies.filter((e) => e.hp > 0 && e.intent?.kind === 'attack');
+    const m = worstMatchup(
+      attackers.map((e) => ({ attacker: e.intent!.line, defender: before.player.stance })),
+    );
+    sfx.play(m === 'break' ? 'break' : 'hit');
+  }
+}
+
+function reactToPhase(before: CombatState, after: CombatState): void {
+  if (before.phase !== 'won' && after.phase === 'won') sfx.play('victory');
+  if (before.phase !== 'lost' && after.phase === 'lost') sfx.play('defeat');
+}
 
 type PileKind = 'draw' | 'discard';
 
@@ -66,7 +126,16 @@ function renderBattle(api: AppApi, run: RunState, combat: CombatState): HTMLElem
 
   function playCard(uid: string, targetUid?: string): void {
     selectedUid = null;
-    api.dispatch({ type: 'combat', action: { type: 'playCard', uid, targetUid } });
+    const action: CombatAction = { type: 'playCard', uid, targetUid };
+    // 소리는 실제 결과를 보고 고른다. `applyAction`은 순수 함수라 여기서 한 번
+    // 더 불러도(디스패치가 실제 반영에서 다시 부른다) 결과가 갈리지 않는다 —
+    // 규칙을 다시 계산하는 게 아니라 같은 규칙을 한 번 더 물어보는 것뿐이다.
+    const card = combat.hand.find((c) => c.uid === uid);
+    const result = applyAction(combat, action, CONTENT);
+    sfx.play('card');
+    if (card) reactToCardPlay(defOf(card), combat, result);
+    reactToPhase(combat, result);
+    api.dispatch({ type: 'combat', action });
   }
 
   /** 탭 한 번: 대상이 필요 없거나 적이 하나면 즉시 발동, 아니면 선택만 한다. */
@@ -107,7 +176,11 @@ function renderBattle(api: AppApi, run: RunState, combat: CombatState): HTMLElem
   function endTurn(): void {
     if (!acting) return;
     selectedUid = null;
-    api.dispatch({ type: 'combat', action: { type: 'endTurn' } });
+    const action: CombatAction = { type: 'endTurn' };
+    const result = applyAction(combat, action, CONTENT);
+    reactToEnemyTurn(combat, result);
+    reactToPhase(combat, result);
+    api.dispatch({ type: 'combat', action });
   }
 
   // ── 구역 ────────────────────────────────────────────────────────────────
@@ -347,7 +420,10 @@ function renderBattle(api: AppApi, run: RunState, combat: CombatState): HTMLElem
     const scrolled = root.querySelector<HTMLElement>('.hand')?.scrollLeft ?? 0;
 
     clear(root);
-    root.append(topBar(), enemyRow(), stanceZone(), handRow(), actionBar());
+    // 원경 산세 실루엣 — 순수 장식이라 aria-hidden, 클릭도 통과시킨다(CSS pointer-events:none).
+    const backdrop = inkBackdrop(run.act);
+    backdrop.classList.add('combat-backdrop');
+    root.append(backdrop, topBar(), enemyRow(), stanceZone(), handRow(), actionBar());
     if (pile !== null) root.append(pileOverlay(pile));
 
     const hand = root.querySelector<HTMLElement>('.hand');
