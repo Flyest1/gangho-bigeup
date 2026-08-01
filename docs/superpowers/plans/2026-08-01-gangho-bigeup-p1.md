@@ -2105,7 +2105,7 @@ const CARDS: CardDef[] = [
 ];
 
 const ENEMIES: EnemyDef[] = [
-  { id: 'dummy', name: '허수아비', hanja: '芻', hp: [30, 30], startStance: 'gyeong',
+  { id: 'dummy', name: '허수아비', hanja: '芻', hp: [60, 60], startStance: 'gyeong',
     tier: 'normal', act: 1,
     actions: [
       { id: 'poke', kind: 'attack', line: 'gyeong', label: '찌르기', weight: 1, value: 5,
