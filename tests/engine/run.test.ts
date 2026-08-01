@@ -80,6 +80,37 @@ describe('노드 진입', () => {
   });
 });
 
+describe('기물 훅', () => {
+  it('마른 육포를 지니고 있으면 전투가 끝날 때 체력을 6 회복한다', () => {
+    let r = run0();
+    r = { ...r, player: { ...r.player, relics: ['yukpo'] } };
+    r = applyRunAction(r, { type: 'chooseNode', nodeId: r.map.layers[0]![0]! }, CONTENT);
+
+    // 적을 한 마리·체력 1로 줄이고, 전투 중 체력을 50으로 강제해 둔다.
+    // 이 상태에서 공격 초식 한 장이면 적 턴이 한 번도 돌기 전에 즉시 승리하므로,
+    // 회복 훅이 발동하기 직전 체력이 정확히 50으로 고정된다.
+    const enemy = r.combat!.enemies[0]!;
+    r = {
+      ...r,
+      combat: {
+        ...r.combat!,
+        player: { ...r.combat!.player, hp: 50 },
+        enemies: [{ ...enemy, hp: 1 }],
+      },
+    };
+
+    const attackCard = r.combat!.hand.find((c) => CONTENT.card(c.defId).target === 'enemy')!;
+    r = applyRunAction(
+      r,
+      { type: 'combat', action: { type: 'playCard', uid: attackCard.uid, targetUid: enemy.uid } },
+      CONTENT,
+    );
+
+    expect(r.screen).toBe('reward');
+    expect(r.player.hp).toBe(56);
+  });
+});
+
 describe('보상', () => {
   function toReward(): RunState {
     let r = applyRunAction(run0(), { type: 'chooseNode', nodeId: run0().map.layers[0]![0]! }, CONTENT);
@@ -147,6 +178,17 @@ describe('객잔', () => {
     const uid = base.player.deck[0]!.uid;
     const once = applyRunAction(base, { type: 'rest', choice: 'upgrade', uid }, CONTENT);
     expect(applyRunAction({ ...once, screen: 'rest' }, { type: 'rest', choice: 'upgrade', uid }, CONTENT).screen).toBe('rest');
+  });
+
+  it('근골(최대 체력 +8)을 지니면 88을 기준으로 회복하고, 80으로 깎이지 않는다', () => {
+    const base = toRest();
+    const s: RunState = {
+      ...base,
+      player: { ...base.player, hp: 50, relics: [...base.player.relics, 'geungol'] },
+    };
+    const r = applyRunAction(s, { type: 'rest', choice: 'heal' }, CONTENT);
+    // 실효 최대 체력 = 80 + 8 = 88. 회복량 = floor(88 * 0.3) = 26. 50 + 26 = 76 ≤ 88.
+    expect(r.player.hp).toBe(76);
   });
 });
 
@@ -228,5 +270,24 @@ describe('결정성', () => {
       return grind(s);
     };
     expect(play()).toEqual(play());
+  });
+
+  it('노드에 진입하면 rngState가 반드시 바뀐다', () => {
+    // 재현성은 "같은 입력 → 같은 결과"만으로는 지켜지지 않는다. rngState 를 소비하고도
+    // 되돌려 쓰지 않는 경로가 있으면, 시드를 재생해도 항상 같은 값에 머물러 있을 뿐이라
+    // 위 테스트는 통과해 버린다. rngState 가 실제로 전진했는지를 직접 검사해야 그 구멍을 잡는다.
+    const r0 = run0();
+    const r1 = applyRunAction(r0, { type: 'chooseNode', nodeId: r0.map.layers[0]![0]! }, CONTENT);
+    expect(r1.rngState).not.toBe(r0.rngState);
+  });
+
+  it('전투가 끝나 보상이 계산되면 rngState가 반드시 바뀐다', () => {
+    // 보상(엽전·초식 3장·기물)은 전투가 끝나는 바로 그 액션(finishCombat) 안에서
+    // 계산된다 — 이후의 takeCard 는 관문이 아닌 한 rng 를 건드리지 않는다. 그래서
+    // rngState 전진 여부는 반드시 이 전환 시점에서 검사해야 한다.
+    const r0 = applyRunAction(run0(), { type: 'chooseNode', nodeId: run0().map.layers[0]![0]! }, CONTENT);
+    const beforeReward = { ...r0, combat: { ...r0.combat!, enemies: r0.combat!.enemies.map((e) => ({ ...e, hp: 0 })) } };
+    const rewardState = applyRunAction(beforeReward, { type: 'combat', action: { type: 'endTurn' } }, CONTENT);
+    expect(rewardState.rngState).not.toBe(beforeReward.rngState);
   });
 });
