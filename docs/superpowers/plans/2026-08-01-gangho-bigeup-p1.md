@@ -4601,7 +4601,7 @@ git commit -m "엔진: 저장 직렬화와 구획별 손상 격리"
 ```js
 // tools/check_engine_purity.mjs
 import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 
@@ -4618,21 +4618,41 @@ const ENGINE = fileURLToPath(new URL('../src/engine/', import.meta.url));
  * 파일들을 컴파일한다. 진짜 파서를 태우면 주석은 AST 에 아예 없고 문자열
  * 리터럴은 식별자가 아니므로, 이 부류의 누수가 구조적으로 불가능해진다.
  */
-const BANNED_GLOBALS = new Set(['document', 'window', 'localStorage', 'navigator']);
+const BANNED_GLOBALS = new Set([
+  'document', 'window', 'localStorage', 'navigator',
+  // 문자열 우회로. `globalThis["document"]` 나 `new Function('return document')`
+  // 는 AST 에서 식별자가 아니라 문자열이라 위의 네 이름으로는 잡히지 않는다.
+  // 엔진에는 이 셋의 정당한 쓰임이 없으므로 이름 자체를 막는다.
+  'globalThis', 'eval', 'Function',
+]);
 
 const ALLOW_MARK = 'purity-allow';
 const ALLOW_LIMIT = 1;
 
+const SCANNED = /\.(ts|tsx|mts|cts|js|mjs|cjs)$/;
+
+/**
+ * 하위 디렉터리까지 훑고 확장자도 넓게 잡는다. `readdirSync` 한 번으로 끝내고
+ * `.ts` 만 보면, `src/engine/sub/` 아래나 `.tsx`·`.mts`·`.js` 파일은 tsconfig 가
+ * 컴파일해 배포까지 가는데 가드만 못 본다. 순수한 fail-open 이다.
+ */
+function collect(dir, out = []) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) collect(full, out);
+    else if (SCANNED.test(entry.name)) out.push(full);
+  }
+  return out;
+}
+
 const problems = [];
 const markedLines = new Set();
 
-for (const name of readdirSync(ENGINE)) {
-  if (!name.endsWith('.ts')) continue;
-
-  const source = readFileSync(join(ENGINE, name), 'utf8');
+for (const file of collect(ENGINE)) {
+  const name = relative(ENGINE, file).replace(/\\/g, '/');
+  const source = readFileSync(file, 'utf8');
   const sf = ts.createSourceFile(name, source, ts.ScriptTarget.ES2022, true);
-  const lines = source.split('
-');
+  const lines = source.split('\n');
 
   const report = (node, why) => {
     const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
