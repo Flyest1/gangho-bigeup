@@ -1,0 +1,244 @@
+// @vitest-environment happy-dom
+//
+// 전투 화면 회귀 테스트. Task 20 의 Playwright 묶음이 기대는 선택자(`.combat`,
+// `.hand .card`, `.enemy[data-hp]`, `.turn-indicator`, `턴 종료` 버튼)와, 화면이
+// 규칙을 다시 계산하지 않는다는 성질(내공이 모자란 카드는 아예 못 낸다)을 못박는다.
+import { beforeEach, afterEach, describe, expect, it } from 'vitest';
+import { startCombat } from '../../src/engine/combat';
+import { CONTENT } from '../../src/engine/gamedata';
+import { startRun, type RunAction, type RunState } from '../../src/engine/run';
+import type { CardInstance, CombatState } from '../../src/engine/types';
+import type { AppApi, AppState } from '../../src/ui/app';
+import { renderCombat } from '../../src/ui/screens/combat';
+
+const DECK: CardInstance[] = [
+  { uid: 'c0', defId: 'byeokta', upgraded: false },    // 외공 · 내공 1 · 6 피해
+  { uid: 'c1', defId: 'bangsin', upgraded: false },    // 내공 · 내공 1 · 호신강기 5
+  { uid: 'c2', defId: 'gyeokgong', upgraded: false },  // 외공 · 내공 2 · 14 피해
+  { uid: 'c3', defId: 'apgu_bae', upgraded: false },   // 내공 · 내공 1 · 적 대상
+];
+
+function makeCombat(enemyIds: string[], patch: Partial<CombatState> = {}): CombatState {
+  const combat = startCombat({
+    seed: 7,
+    player: { hp: 80, maxHp: 80, maxQi: 3, stance: 'wai', relics: [] },
+    enemyIds,
+    deck: DECK,
+  }, CONTENT);
+  return { ...combat, hand: [...DECK], draw: [], discard: [], ...patch };
+}
+
+interface Harness {
+  root: HTMLElement;
+  sent: RunAction[];
+  api: AppApi;
+}
+
+function mount(combat: CombatState): Harness {
+  const base: RunState = startRun('전투UI', CONTENT);
+  const run: RunState = { ...base, screen: 'combat', combat };
+  const sent: RunAction[] = [];
+  const api: AppApi = {
+    dispatch: (action) => { sent.push(action); },
+    newRun: () => {},
+    toTitle: () => {},
+    resume: () => {},
+    dismissNotice: () => {},
+    dismissSaveNotice: () => {},
+    getState: () => ({ save: { version: 1, meta: { version: 1, runsStarted: 0, runsWon: 0, bestAct: 0, bestFloors: 0 }, run }, view: 'run', notice: null, saveNotice: null } satisfies AppState),
+  };
+  const root = renderCombat(api, run);
+  document.body.append(root);
+  return { root, sent, api };
+}
+
+beforeEach(() => { document.body.innerHTML = ''; });
+afterEach(() => { document.body.innerHTML = ''; });
+
+describe('전투 화면 — 시험 고리', () => {
+  it('Task 20 이 기대는 선택자가 모두 있다', () => {
+    const { root } = mount(makeCombat(['deulgae']));
+
+    expect(root.classList.contains('combat')).toBe(true);
+    expect(root.querySelectorAll('.hand .card')).toHaveLength(4);
+    expect(root.querySelectorAll('.enemy[data-hp]')).toHaveLength(1);
+
+    const turn = root.querySelector('.turn-indicator');
+    expect(turn?.textContent).toContain('1');
+
+    const buttons = [...root.querySelectorAll('button')];
+    expect(buttons.some((b) => b.textContent === '턴 종료')).toBe(true);
+  });
+
+  it('적의 체력이 data-hp 로 드러난다', () => {
+    const combat = makeCombat(['deulgae']);
+    const { root } = mount(combat);
+    const node = root.querySelector<HTMLElement>('.enemy[data-hp]');
+    expect(node?.dataset.hp).toBe(String(combat.enemies[0]!.hp));
+  });
+});
+
+describe('전투 화면 — 발동', () => {
+  it('적이 하나면 카드를 탭하는 즉시 발동한다', () => {
+    const { root, sent } = mount(makeCombat(['deulgae']));
+    root.querySelector<HTMLElement>('.hand-slot[data-uid="c0"]')!.click();
+    expect(sent).toEqual([{ type: 'combat', action: { type: 'playCard', uid: 'c0', targetUid: undefined } }]);
+  });
+
+  it('적이 둘이면 카드를 고른 뒤 적을 탭해야 발동한다', () => {
+    const { root, sent } = mount(makeCombat(['deulgae', 'sanjeok']));
+    root.querySelector<HTMLElement>('.hand-slot[data-uid="c0"]')!.click();
+    expect(sent).toHaveLength(0);
+
+    const second = root.querySelectorAll<HTMLElement>('.enemy[data-hp]')[1]!;
+    second.click();
+    expect(sent).toEqual([{ type: 'combat', action: { type: 'playCard', uid: 'c0', targetUid: 'e1' } }]);
+  });
+
+  it('Esc 를 누르면 선택이 풀린다', () => {
+    const { root, sent } = mount(makeCombat(['deulgae', 'sanjeok']));
+    root.querySelector<HTMLElement>('.hand-slot[data-uid="c0"]')!.click();
+    expect(root.querySelector('.hand-slot.selected')).not.toBeNull();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(root.querySelector('.hand-slot.selected')).toBeNull();
+
+    root.querySelectorAll<HTMLElement>('.enemy[data-hp]')[1]!.click();
+    expect(sent).toHaveLength(0);
+  });
+
+  it('내공이 모자란 카드는 눌러도 발동되지 않는다', () => {
+    const combat = makeCombat(['deulgae']);
+    const { root, sent } = mount({ ...combat, player: { ...combat.player, qi: 1 } });
+
+    const dead = root.querySelector<HTMLButtonElement>('.hand-slot[data-uid="c2"]')!;
+    expect(dead.disabled).toBe(true);
+    expect(dead.querySelector('.card')!.classList.contains('unplayable')).toBe(true);
+    dead.click();
+    expect(sent).toHaveLength(0);
+
+    // 키보드 경로도 같은 판정을 거친다 (3번 = 격공).
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: '3', bubbles: true }));
+    expect(sent).toHaveLength(0);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: '1', bubbles: true }));
+    expect(sent).toHaveLength(1);
+  });
+
+  it('턴 종료 버튼이 endTurn 을 보낸다', () => {
+    const { root, sent } = mount(makeCombat(['deulgae']));
+    const end = [...root.querySelectorAll('button')].find((b) => b.textContent === '턴 종료')!;
+    end.click();
+    expect(sent).toEqual([{ type: 'combat', action: { type: 'endTurn' } }]);
+  });
+});
+
+describe('전투 화면 — 자세 띠', () => {
+  it('내 계열이 적 자세를 이기면 파훼로 적힌다', () => {
+    // 들개는 경공 자세로 시작하고 나는 외공 자세다. 외공▶경공이므로 파훼.
+    const { root } = mount(makeCombat(['deulgae']));
+    const mine = root.querySelector('.stance-row.tone-mine')!;
+    expect(mine.classList.contains('verdict-break')).toBe(true);
+    expect(mine.textContent).toContain('파훼');
+    expect(mine.textContent).toContain('×1.5');
+  });
+
+  it('내 계열이 적 자세에 눌리면 저항으로 적힌다', () => {
+    const combat = makeCombat(['deulgae']);
+    const enemy = { ...combat.enemies[0]!, stance: 'nae' as const };
+    const { root } = mount({ ...combat, enemies: [enemy] });
+    const mine = root.querySelector('.stance-row.tone-mine')!;
+    expect(mine.classList.contains('verdict-resisted')).toBe(true);
+    expect(mine.textContent).toContain('저항');
+  });
+
+  it('적이 치는 줄은 자세가 아니라 의도 계열로 판정한다', () => {
+    const combat = makeCombat(['deulgae']);
+    const enemy = {
+      ...combat.enemies[0]!,
+      stance: 'wai' as const,
+      intent: { actionId: 'mul', kind: 'attack' as const, line: 'gyeong' as const, value: 6, hits: 1, label: '물어뜯기' },
+    };
+    // 내 자세는 외공. 적 자세(외공)로 보면 평타지만, 의도 계열(경공)로 보면 내가 저항한다.
+    const { root } = mount({ ...combat, enemies: [enemy] });
+    const theirs = root.querySelector('.stance-row.tone-theirs')!;
+    expect(theirs.classList.contains('verdict-resisted')).toBe(true);
+  });
+
+  it('고른 초식의 계열로 내 공격 줄을 미리 본다', () => {
+    const combat = makeCombat(['deulgae', 'sanjeok']);
+    const { root } = mount(combat);
+    // 압구배는 내공 계열이고 적을 겨눈다. 들개(경공)를 상대로는 내공이 눌린다 — 경공▶내공.
+    root.querySelector<HTMLElement>('.hand-slot[data-uid="c3"]')!.click();
+    const mine = root.querySelector('.stance-row.tone-mine')!;
+    expect(mine.classList.contains('preview')).toBe(true);
+    expect(mine.classList.contains('verdict-resisted')).toBe(true);
+  });
+});
+
+describe('전투 화면 — 연계', () => {
+  it('임계 직전이면 다음 한 장을 예고한다', () => {
+    const combat = makeCombat(['deulgae'], { combo: { line: 'wai', count: 2 } });
+    const { root } = mount(combat);
+    const combo = root.querySelector('.combo')!;
+    expect(combo.classList.contains('ready')).toBe(true);
+    expect(combo.textContent).toContain('연계');
+    expect(root.querySelectorAll('.combo-dot.on')).toHaveLength(2);
+  });
+
+  it('임계에 닿으면 발동 중으로 강조한다', () => {
+    const combat = makeCombat(['deulgae'], { combo: { line: 'wai', count: 3 } });
+    const { root } = mount(combat);
+    const combo = root.querySelector('.combo')!;
+    expect(combo.classList.contains('firing')).toBe(true);
+    expect(combo.textContent).toContain('피해 +6');
+  });
+
+  it('계열이 없으면 점이 모두 비어 있다', () => {
+    const combat = makeCombat(['deulgae'], { combo: { line: null, count: 0 } });
+    const { root } = mount(combat);
+    expect(root.querySelectorAll('.combo-dot')).toHaveLength(3);
+    expect(root.querySelectorAll('.combo-dot.on')).toHaveLength(0);
+  });
+});
+
+describe('전투 화면 — 접근성', () => {
+  it('카드 이름표에 이름·계열·내공·설명이 순서대로 들어간다', () => {
+    const { root } = mount(makeCombat(['deulgae']));
+    const label = root.querySelector('.hand-slot[data-uid="c0"]')!.getAttribute('aria-label') ?? '';
+    expect(label.startsWith('벽타, 외공, 내공 1, 6 피해.')).toBe(true);
+  });
+
+  it('의도 이름표가 행동·수치·계열을 읽는다', () => {
+    const combat = makeCombat(['deulgae']);
+    const enemy = {
+      ...combat.enemies[0]!,
+      intent: { actionId: 'mul', kind: 'attack' as const, line: 'gyeong' as const, value: 6, hits: 2, label: '물어뜯기' },
+    };
+    const { root } = mount({ ...combat, enemies: [enemy] });
+    const label = root.querySelector('.intent')!.getAttribute('aria-label');
+    expect(label).toBe('다음 행동: 물어뜯기, 공격 6 2회, 경공');
+    expect(root.querySelector('.intent-value')!.textContent).toBe('6 ×2');
+  });
+
+  it('체력·호신강기 막대가 meter 값을 모두 낸다', () => {
+    const combat = makeCombat(['deulgae']);
+    const { root } = mount({ ...combat, player: { ...combat.player, hp: 62, block: 7 } });
+    const hp = root.querySelector('.topbar .meter-hp')!;
+    expect(hp.getAttribute('role')).toBe('meter');
+    expect(hp.getAttribute('aria-valuenow')).toBe('62');
+    expect(hp.getAttribute('aria-valuemin')).toBe('0');
+    expect(hp.getAttribute('aria-valuemax')).toBe('80');
+
+    const block = root.querySelector('.topbar .meter-block')!;
+    expect(block.getAttribute('aria-valuenow')).toBe('7');
+  });
+
+  it('계열 표시는 색 없이도 도형과 한자로 갈린다', () => {
+    const { root } = mount(makeCombat(['deulgae']));
+    const chip = root.querySelector('.my-stance .line-chip')!;
+    expect(chip.querySelector('.line-shape')!.textContent).toBe('◆');
+    expect(chip.querySelector('.line-hanja')!.textContent).toBe('外');
+    expect(chip.getAttribute('aria-label')).toBe('외공');
+  });
+});

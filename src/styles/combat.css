@@ -1,0 +1,473 @@
+/* src/styles/combat.css — 전투 화면. 모바일 세로(390×844)를 먼저 맞추고 데스크톱은 같은 배치를 넓힌다. */
+
+/* ── 계열 색. 색은 거들 뿐이고 도형·한자가 항상 함께 나온다. ─────────────── */
+.line-wai { --line: var(--wai); }
+.line-gyeong { --line: var(--gyeong); }
+.line-nae { --line: var(--nae); }
+.line-sul { --line: #8b8170; }
+
+.line-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.18em;
+  padding: 0.1em 0.4em;
+  border: 1px solid var(--line, var(--paper));
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--line, var(--paper)) 22%, transparent);
+  color: var(--paper);
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.line-chip .line-shape { color: var(--line, var(--paper)); font-size: 0.85em; }
+.line-chip .line-hanja { font-weight: 700; }
+.line-chip .line-name { font-size: 0.8em; opacity: 0.85; }
+
+/* ── 상성 도장 ────────────────────────────────────────────────────────── */
+.mu {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2em;
+  padding: 0.1em 0.4em;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  line-height: 1.25;
+}
+.mu-hanja { font-weight: 700; }
+.mu-mult { font-size: 0.78em; opacity: 0.9; }
+
+.mu-break { background: var(--gold); color: var(--ink); font-weight: 700; }
+.mu-neutral { border-color: rgba(222, 211, 189, 0.3); color: rgba(222, 211, 189, 0.7); }
+.mu-resisted { border: 1px dashed rgba(222, 211, 189, 0.45); color: rgba(222, 211, 189, 0.62); }
+
+/* 적이 나를 파훼하는 자리에서는 같은 글자가 정반대의 뜻이다. */
+.tone-theirs .mu-break,
+.enemy .intent .mu-break { background: var(--wai); color: #fff; }
+
+/* ── 화면 뼈대 ────────────────────────────────────────────────────────── */
+.screen.combat {
+  display: grid;
+  grid-template-rows: auto 1fr auto auto auto;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  font-size: 16px;
+}
+
+/* ── 1. 상단바 ─────────────────────────────────────────────────────────── */
+.combat .topbar {
+  padding: 0.4rem 0.6rem;
+  padding-top: calc(0.4rem + env(safe-area-inset-top));
+  border-bottom: 1px solid rgba(222, 211, 189, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.combat .topbar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.combat .topbar-row.bars .meter { flex: 1 1 40%; }
+
+.meter {
+  position: relative;
+  display: block;
+  min-width: 72px;
+  height: 16px;
+  border: 1px solid rgba(222, 211, 189, 0.35);
+  border-radius: 3px;
+  background: rgba(20, 17, 16, 0.6);
+  overflow: hidden;
+}
+.meter-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: rgba(222, 211, 189, 0.28);
+  transition: width 0.18s ease-out;
+}
+.meter-hp .meter-fill { background: color-mix(in srgb, var(--wai) 72%, var(--paper)); }
+.meter-block .meter-fill { background: color-mix(in srgb, var(--nae) 70%, var(--paper)); }
+.meter-text {
+  position: relative;
+  display: block;
+  text-align: center;
+  font-size: 0.7rem;
+  line-height: 16px;
+  color: var(--paper);
+  text-shadow: 0 0 3px var(--ink), 0 0 3px var(--ink);
+}
+
+.qi { display: inline-flex; align-items: center; gap: 0.15rem; font-size: 0.75rem; }
+.qi-label { opacity: 0.7; margin-right: 0.15rem; }
+.qi-pip { color: rgba(222, 211, 189, 0.35); font-size: 0.8rem; }
+.qi-pip.on { color: var(--gold); }
+.qi-text { margin-left: 0.2rem; opacity: 0.75; }
+
+.combat .topbar-row.meta { font-size: 0.75rem; opacity: 0.95; }
+.combat .turn-indicator {
+  padding: 0.1em 0.45em;
+  border: 1px solid var(--gold);
+  border-radius: 3px;
+  color: var(--gold);
+  font-weight: 700;
+}
+.combat .floor { opacity: 0.7; }
+.my-stance { display: inline-flex; align-items: center; gap: 0.3rem; }
+.my-stance-label { opacity: 0.7; }
+
+.badges { display: inline-flex; gap: 0.25rem; flex-wrap: wrap; }
+.badge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.15em;
+  padding: 0.05em 0.3em;
+  border-radius: 3px;
+  font-size: 0.72rem;
+  border: 1px solid currentColor;
+}
+.badge.harmful { color: #e08a7d; }
+.badge.boon { color: #8fd0ac; }
+.badge-hanja { font-weight: 700; }
+.badge-empty { font-size: 0.7rem; opacity: 0.45; }
+
+.relics { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+.relic {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2em;
+  font-size: 0.7rem;
+  padding: 0.05em 0.35em;
+  border: 1px solid rgba(201, 162, 39, 0.5);
+  border-radius: 3px;
+  color: var(--gold);
+}
+.relic-name { color: var(--paper); opacity: 0.8; }
+
+/* ── 2. 적 열 ─────────────────────────────────────────────────────────── */
+.combat .enemy-row {
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem;
+}
+
+.enemy {
+  flex: 0 1 auto;
+  min-width: 150px;
+  max-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.5rem;
+  border: 1px solid rgba(222, 211, 189, 0.28);
+  border-radius: 6px;
+  background: rgba(222, 211, 189, 0.04);
+  color: var(--paper);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease-out, transform 0.15s ease-out;
+}
+.enemy.selected { border-color: var(--gold); }
+.enemy.targetable {
+  border-color: var(--gold);
+  border-style: dashed;
+  animation: enemy-beckon 1.1s ease-in-out infinite alternate;
+}
+@keyframes enemy-beckon { to { background: rgba(201, 162, 39, 0.12); } }
+.enemy:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.enemy-head { display: flex; align-items: baseline; gap: 0.35rem; flex-wrap: wrap; }
+.enemy-name { font-size: 0.95rem; font-weight: 700; }
+.enemy-hanja { font-size: 0.75rem; opacity: 0.6; }
+.enemy-head .mu { font-size: 0.7rem; margin-left: auto; }
+
+.enemy-stance { display: flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; }
+.enemy-stance-label { opacity: 0.65; }
+.enemy .meter { width: 100%; }
+.enemy .badges { min-height: 0; }
+
+.intent {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  padding: 0.3rem 0.4rem;
+  border-top: 1px solid rgba(222, 211, 189, 0.18);
+  font-size: 0.8rem;
+}
+.intent-mark { font-size: 1rem; }
+.intent-value { font-weight: 700; font-size: 0.95rem; }
+.intent-label { opacity: 0.7; font-size: 0.72rem; }
+.intent .line-chip { font-size: 0.75rem; }
+.intent .mu { font-size: 0.68rem; }
+.intent-attack .intent-mark { color: var(--wai); }
+.intent-defend .intent-mark { color: var(--nae); }
+.intent-buff .intent-mark { color: var(--gold); }
+.intent-debuff .intent-mark { color: #b184c7; }
+.intent-none { opacity: 0.5; font-size: 0.75rem; }
+
+/* ── 3. 자세 띠 — 이 화면에서 가장 중요한 구역 ────────────────────────── */
+.stance-bar {
+  padding: 0.45rem 0.6rem;
+  border-top: 1px solid rgba(201, 162, 39, 0.35);
+  border-bottom: 1px solid rgba(201, 162, 39, 0.35);
+  background: rgba(201, 162, 39, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.stance-head { display: flex; align-items: baseline; gap: 0.5rem; }
+.stance-title {
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.3em;
+  color: var(--gold);
+  font-weight: 400;
+}
+.stance-focus { font-size: 0.72rem; opacity: 0.7; }
+.stance-empty { margin: 0; font-size: 0.8rem; opacity: 0.7; }
+
+.stance-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  padding: 0.25rem 0.4rem;
+  border-left: 3px solid rgba(222, 211, 189, 0.25);
+  border-radius: 2px;
+  font-size: 0.8rem;
+}
+.stance-row.verdict-break { border-left-color: var(--gold); background: rgba(201, 162, 39, 0.12); }
+.stance-row.tone-theirs.verdict-break { border-left-color: var(--wai); background: rgba(192, 69, 58, 0.16); }
+.stance-row.verdict-resisted { border-left-color: rgba(222, 211, 189, 0.2); opacity: 0.85; }
+.stance-row.preview { outline: 1px dashed rgba(201, 162, 39, 0.6); }
+
+.stance-who { min-width: 4.2em; opacity: 0.75; font-size: 0.75rem; }
+.stance-arrow { opacity: 0.4; font-size: 0.75rem; }
+.stance-target { font-size: 0.72rem; opacity: 0.7; }
+.stance-note { flex: 1 0 100%; font-size: 0.68rem; opacity: 0.6; padding-left: 4.5em; }
+
+.combo {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  padding: 0.25rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  border: 1px solid transparent;
+}
+.combo-label { letter-spacing: 0.2em; opacity: 0.7; }
+.combo-dots { letter-spacing: 0.1em; }
+.combo-dot { color: rgba(222, 211, 189, 0.3); }
+.combo-dot.on { color: var(--gold); }
+.combo-count { font-variant-numeric: tabular-nums; opacity: 0.75; }
+.combo-text { flex: 1 1 100%; font-size: 0.7rem; opacity: 0.7; }
+.combo.ready { border-color: rgba(201, 162, 39, 0.5); }
+.combo.ready .combo-text { opacity: 0.95; color: var(--gold); }
+.combo.firing {
+  border-color: var(--gold);
+  background: rgba(201, 162, 39, 0.16);
+}
+.combo.firing .combo-text { opacity: 1; color: var(--gold); font-weight: 700; }
+
+/* ── 4. 손패 ──────────────────────────────────────────────────────────── */
+.combat .hand {
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.hand-empty { margin: auto; font-size: 0.85rem; opacity: 0.6; }
+
+.hand-slot {
+  flex: 0 0 auto;
+  position: relative;
+  width: min(30vw, 132px);
+  padding: 0;
+  border: none;
+  background: none;
+  scroll-snap-align: center;
+  cursor: pointer;
+  transition: transform 0.15s ease-out;
+}
+.hand-slot:disabled { cursor: default; }
+.hand-slot.selected { transform: translateY(-8px); }
+.hand-slot:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 8px; }
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+  min-height: 168px;
+  padding: 0.4rem 0.4rem 0.5rem;
+  border: 1px solid var(--line, var(--paper));
+  border-top-width: 4px;
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--line, var(--paper)) 16%, transparent), transparent 55%),
+    #1d1917;
+  color: var(--paper);
+  text-align: left;
+}
+.hand-slot.selected .card { box-shadow: 0 0 0 2px var(--gold); }
+.card.unplayable { opacity: 0.45; }
+.card.rarity-rare { border-color: color-mix(in srgb, var(--line, var(--paper)) 60%, var(--gold)); }
+.card.rarity-ultra { border-color: var(--gold); }
+
+.card-cost {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.card-line {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.15em;
+  font-size: 0.8rem;
+}
+.card-line-shape { color: var(--line, var(--paper)); }
+.card-line-hanja { font-weight: 700; }
+.card-name { margin: 0.5rem 0 0; font-size: 0.9rem; line-height: 1.2; text-align: center; }
+.card-hanja { margin: 0; font-size: 0.62rem; opacity: 0.5; text-align: center; }
+.card-text {
+  margin: 0.3rem 0 0;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  opacity: 0.92;
+  overflow: hidden;
+}
+
+.card-mu {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.15em;
+  padding: 0.1em 0.35em;
+  border-radius: 3px 0 6px 0;
+  font-size: 0.68rem;
+  line-height: 1.3;
+}
+.card.verdict-break { border-color: var(--gold); }
+
+.hand-key {
+  display: none;
+  position: absolute;
+  top: -0.4rem;
+  right: -0.4rem;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 50%;
+  background: rgba(222, 211, 189, 0.2);
+  color: var(--paper);
+  font-size: 0.65rem;
+  line-height: 1.15rem;
+  text-align: center;
+}
+
+/* ── 5. 행동바 ────────────────────────────────────────────────────────── */
+.combat-actions {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(222, 211, 189, 0.15);
+  background: var(--ink);
+}
+.combat-actions .btn {
+  flex: 1 1 auto;
+  padding: 0.55em 0.4em;
+  font-size: 0.82rem;
+  min-width: 0;
+}
+.combat-actions .btn.primary { flex: 1.4 1 auto; }
+.combat-actions .btn.quiet { border-color: rgba(222, 211, 189, 0.3); opacity: 0.8; }
+.combat-actions .btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ── 덱·버린 패 보기 ──────────────────────────────────────────────────── */
+.pile-view {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  background: var(--ink);
+  padding: 0.75rem;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+.pile-head { display: flex; align-items: center; gap: 0.75rem; }
+.pile-head h2 { margin: 0; font-size: 1rem; flex: 1; }
+.pile-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.card-row {
+  display: grid;
+  grid-template-columns: 1.4rem 2.4rem minmax(4.5rem, auto) 1fr;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.3rem 0.2rem;
+  border-bottom: 1px solid rgba(222, 211, 189, 0.1);
+  font-size: 0.8rem;
+}
+.card-row-cost {
+  text-align: center;
+  color: var(--gold);
+  font-weight: 700;
+}
+.card-row-line { color: var(--line, var(--paper)); font-weight: 700; }
+.card-row-text { font-size: 0.7rem; opacity: 0.65; }
+.pile-empty { opacity: 0.5; font-size: 0.85rem; }
+
+/* ── 넓은 화면 ────────────────────────────────────────────────────────── */
+@media (min-width: 900px) {
+  .hand-slot { width: 150px; }
+  .card { min-height: 190px; }
+  .card-name { font-size: 1rem; }
+  .card-text { font-size: 0.75rem; }
+  .combat .enemy-row { align-content: center; padding: 1rem; gap: 1rem; }
+  .hand-key { display: block; }
+  .combat .hand { justify-content: center; }
+}
+
+/* ── 움직임을 줄이라는 설정 ───────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}
