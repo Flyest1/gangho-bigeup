@@ -50,11 +50,6 @@ export class Rng {
     }
     return entries[entries.length - 1]![0];
   }
-
-  /** 부모 스트림을 소비하지 않고 독립된 자식 스트림을 만든다. */
-  fork(): Rng {
-    return new Rng((Math.imul(this.state ^ 0x9e3779b9, 0x85ebca6b) >>> 0) + 1);
-  }
 }
 
 export function seedFrom(text: string): number {
@@ -68,6 +63,9 @@ export function seedFrom(text: string): number {
 
 const SEED_SYLLABLES = ['강', '호', '무', '림', '검', '도', '풍', '운', '설', '월', '영', '협'];
 
+// 이 파일에서 Math.random 을 쓰는 유일한 지점이다. 런의 시작 시드를 뽑는 곳이며,
+// 이후 게임의 모든 난수는 이 시드에서 파생되므로 런 자체는 여전히 재현 가능하다.
+// tools/check_engine_purity.mjs 가 rng.ts 의 이 호출만 화이트리스트로 허용한다.
 export function randomSeedText(): string {
   let out = '';
   for (let i = 0; i < 4; i++) {

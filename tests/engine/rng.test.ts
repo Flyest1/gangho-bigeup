@@ -78,15 +78,6 @@ describe('Rng', () => {
     expect(a / 4000).toBeLessThan(0.80);
   });
 
-  it('fork는 부모와 독립된 스트림을 만든다', () => {
-    const parent = new Rng(seedFrom('분기'));
-    const child = parent.fork();
-    const before = parent.state;
-    child.next(); child.next();
-    expect(parent.state).toBe(before);
-    expect(child.state).not.toBe(before);
-  });
-
   it('randomSeedText는 매번 다른 문자열을 낸다', () => {
     const set = new Set(Array.from({ length: 50 }, () => randomSeedText()));
     expect(set.size).toBe(50);
