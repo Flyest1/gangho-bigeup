@@ -50,3 +50,29 @@ describe('저장 브릿지', () => {
     expect(importSave('아무말')).toBeNull();
   });
 });
+
+// defaultStore()는 export되지 않으므로 loadSave/persistSave를 store 인자 없이 호출해
+// 간접적으로 검증한다. 이 파일은 vitest.config.ts의 environment: 'node'로 돌아 DOM이
+// 없고, 전역 localStorage도 정의돼 있지 않다 — 그래서 아래 첫 테스트는 준비 없이도
+// '전역이 아예 없는' 분기를 그대로 탄다.
+describe('기본 저장소(localStorage) 없음/차단 대체 동작', () => {
+  it('전역 localStorage가 아예 없으면 저장 없이 안전하게 진행한다', () => {
+    expect(typeof localStorage).toBe('undefined');
+    expect(loadSave()).toEqual({ save: emptySave(), quarantined: [] });
+    expect(persistSave(emptySave())).toBe(false);
+  });
+
+  it('localStorage 참조 자체가 던지면(사생활 모드 등) 없는 것으로 친다', () => {
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      get(): never { throw new Error('SecurityError: 접근이 차단되었습니다'); },
+    });
+    try {
+      expect(loadSave()).toEqual({ save: emptySave(), quarantined: [] });
+      expect(persistSave(emptySave())).toBe(false);
+    } finally {
+      delete (globalThis as { localStorage?: unknown }).localStorage;
+    }
+    expect(typeof localStorage).toBe('undefined');
+  });
+});

@@ -16,6 +16,7 @@ export interface AppState {
   save: SaveData;
   view: 'title' | 'run';
   notice: string | null;
+  saveNotice: string | null;
 }
 
 export interface AppApi {
@@ -24,8 +25,12 @@ export interface AppApi {
   toTitle(): void;
   resume(): void;
   dismissNotice(): void;
+  dismissSaveNotice(): void;
   getState(): AppState;
 }
+
+const SAVE_FAILED_NOTICE =
+  '저장에 실패했습니다. 비공개 모드이거나 저장 공간이 가득 찬 것 같습니다. 이 판은 이어서 할 수 없습니다.';
 
 export function mountApp(root: HTMLElement): void {
   const loaded = loadSave();
@@ -35,7 +40,14 @@ export function mountApp(root: HTMLElement): void {
     notice: loaded.quarantined.length
       ? `저장 기록 일부가 손상되어 격리했습니다 (${loaded.quarantined.join(', ')}). 나머지는 그대로 이어집니다.`
       : null,
+    saveNotice: null,
   };
+
+  // 저장 실패를 이미 알렸는지 추적한다. persistSave가 계속 실패하는 동안(같은 고장)
+  // commit마다 다시 알리면, 플레이어가 알림을 닫아도 다음 행동에서 바로 되살아나
+  // 사실상 닫을 수 없는 알림이 된다. 그래서 '고장으로 새로 접어드는 순간'에만 알리고,
+  // 저장이 다시 성공하면 무장 해제해 그 뒤의 실패를 다시 '새로운' 고장으로 취급한다.
+  let saveBroken = false;
 
   function commit(run: RunState | null): void {
     let save: SaveData = { ...state.save, run };
@@ -43,7 +55,13 @@ export function mountApp(root: HTMLElement): void {
       save = { ...save, meta: recordRunEnd(save.meta, run) };
     }
     state.save = save;
-    persistSave(save);
+    const ok = persistSave(save);
+    if (ok) {
+      saveBroken = false;
+    } else if (!saveBroken) {
+      saveBroken = true;
+      state.saveNotice = SAVE_FAILED_NOTICE;
+    }
     render();
   }
 
@@ -72,6 +90,10 @@ export function mountApp(root: HTMLElement): void {
       state.notice = null;
       render();
     },
+    dismissSaveNotice() {
+      state.saveNotice = null;
+      render();
+    },
     getState: () => state,
   };
 
@@ -90,13 +112,24 @@ export function mountApp(root: HTMLElement): void {
     clear(root);
     const run = state.save.run;
     root.append(state.view === 'run' && run ? screenFor(run) : renderTitle(api, state));
-    if (state.notice) root.append(renderNotice(state.notice, api));
+
+    // 격리 알림(불러올 때)과 저장 실패 알림(저장할 때)은 서로 다른 상태라 하나가
+    // 다른 하나를 지우지 않는다. 둘 다 떠 있을 수 있으므로 쌓아서 보여준다.
+    const notices: Array<{ text: string; dismiss: () => void }> = [];
+    if (state.notice) notices.push({ text: state.notice, dismiss: () => api.dismissNotice() });
+    if (state.saveNotice) notices.push({ text: state.saveNotice, dismiss: () => api.dismissSaveNotice() });
+    if (notices.length) {
+      const stack = document.createElement('div');
+      stack.className = 'notice-stack';
+      for (const n of notices) stack.append(renderNotice(n.text, n.dismiss));
+      root.append(stack);
+    }
   }
 
   render();
 }
 
-function renderNotice(text: string, api: AppApi): HTMLElement {
+function renderNotice(text: string, onDismiss: () => void): HTMLElement {
   const box = document.createElement('div');
   box.className = 'notice';
   box.setAttribute('role', 'status');
@@ -105,7 +138,7 @@ function renderNotice(text: string, api: AppApi): HTMLElement {
   close.className = 'notice-close';
   close.textContent = '×';
   close.setAttribute('aria-label', '알림 닫기');
-  close.addEventListener('click', () => api.dismissNotice());
+  close.addEventListener('click', onDismiss);
   box.append(close);
   return box;
 }
