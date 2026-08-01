@@ -1638,7 +1638,7 @@ import { Rng } from './rng';
 import { beats, matchup } from './stance';
 import { addStatus } from './status';
 import type {
-  CombatState, EffectAtom, EffectTarget, EnemyState, Line, Stance,
+  CombatState, EffectAtom, EffectTarget, EnemyState, Line, Stance, StatusMap,
 } from './types';
 
 export interface EffectSource {
@@ -1708,12 +1708,17 @@ export function damageEnemy(
 }
 
 export function damagePlayer(
-  state: CombatState, base: number, line: Line, opts: { ignoreBlock?: boolean } = {},
+  state: CombatState,
+  base: number,
+  line: Line,
+  opts: { ignoreBlock?: boolean; attackerStatus?: StatusMap } = {},
 ): CombatState {
   const result = computeDamage({
     base,
     attackerLine: line,
-    attackerStatus: {},
+    // 공격자(적)의 기세·쇠약이 반드시 실려야 한다. 비워 두면 적이 자신에게 거는
+    // 기세와 플레이어가 적에게 거는 쇠약이 통째로 무의미해진다.
+    attackerStatus: opts.attackerStatus ?? {},
     defenderStance: state.player.stance,
     defenderStatus: state.player.status,
     defenderBlock: state.player.block,
@@ -2421,7 +2426,10 @@ function applyEnemyEffects(
     switch (atom.op) {
       case 'damage': {
         const hits = atom.hits ?? 1;
-        for (let i = 0; i < hits; i++) s = damagePlayer(s, atom.value, line);
+        for (let i = 0; i < hits; i++) {
+          const attacker = s.enemies.find((e) => e.uid === enemyUid);
+          s = damagePlayer(s, atom.value, line, { attackerStatus: attacker?.status ?? {} });
+        }
         break;
       }
       case 'block':
