@@ -78,4 +78,24 @@ describe('chooseIntent', () => {
     const b = chooseIntent(def, e, new Rng(seedFrom('동일')));
     expect(a).toEqual(b);
   });
+
+  it('가중 추첨으로 행동을 선택한다', () => {
+    const e = spawnEnemy(def, 'e1', new Rng(1)); // empty history, no constraints
+    const results: { bite: number; howl: number } = { bite: 0, howl: 0 };
+    const sampleSize = 400;
+
+    for (let i = 0; i < sampleSize; i++) {
+      const intent = chooseIntent(def, e, new Rng(seedFrom(`weighted${i}`)));
+      results[intent.actionId as keyof typeof results]++;
+    }
+
+    // Both actions should appear
+    expect(results.bite).toBeGreaterThan(0);
+    expect(results.howl).toBeGreaterThan(0);
+
+    // bite has weight 3, howl has weight 1, so bite should be ~75%
+    const biteShare = results.bite / sampleSize;
+    expect(biteShare).toBeGreaterThan(0.68); // conservative band for 400 samples
+    expect(biteShare).toBeLessThan(0.82);
+  });
 });
