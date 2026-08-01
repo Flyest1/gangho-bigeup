@@ -2603,7 +2603,7 @@ git commit -m "엔진: 전투 상태 기계. 턴 순환·자세 전환·연계·
 
 **Interfaces:**
 - Produces:
-  - `type RelicHook = 'onCombatStart' | 'onTurnStart' | 'onKill' | 'onCombatEnd'`
+  - `type RelicHook = 'onCombatStart' | 'onTurnStart' | 'onCombatEnd'`
   - `interface RelicMods { maxHp: number; maxQi: number; handSize: number; startBlock: number; comboThreshold: number }`
   - `interface RelicDef { id: string; name: string; hanja: string; rarity: Rarity; text: string; mods?: Partial<RelicMods>; triggers?: Array<{ hook: RelicHook; onlyTurn?: number; effects: EffectAtom[] }> }`
   - `function relicMods(relicIds: string[], content: ContentIndex): RelicMods`
@@ -2742,7 +2742,7 @@ import type { ContentIndex } from './content';
 import { applyEffects } from './effects';
 import type { CombatState, EffectAtom, Rarity } from './types';
 
-export type RelicHook = 'onCombatStart' | 'onTurnStart' | 'onKill' | 'onCombatEnd';
+export type RelicHook = 'onCombatStart' | 'onTurnStart' | 'onCombatEnd';
 
 export interface RelicMods {
   maxHp: number;
@@ -3025,7 +3025,7 @@ git commit -m "엔진: 기물 시스템. 패시브 보정과 훅 트리거"
 | cheoljang | 무거운 철장 | 杖 | rare | mods.maxHp −5 · onCombatStart → momentum 3 self |
 | yukpo | 마른 육포 | 脯 | common | onCombatEnd → heal 6 |
 | okjeok | 도화 옥적 | 笛 | rare | onTurnStart → block 3 |
-| heukpungjo | 흑풍의 발톱 | 爪 | rare | onKill → gainQi 1 |
+| heukpungjo | 흑풍의 발톱 | 爪 | rare | onCombatStart → vulnerable 1 allEnemies |
 | chohye | 낡은 짚신 | 鞋 | common | onTurnStart onlyTurn 1 → afterimage 1 self |
 | guyang_janpyeon | 구양신공 잔편 | 陽 | rare | onTurnStart → heal 2 |
 | bonggyeol | 죽봉 매듭 | 結 | rare | mods.comboThreshold −1 |
@@ -3300,7 +3300,7 @@ const STATUSES = new Set(['poison', 'naesang', 'vulnerable', 'weak', 'momentum',
 const LINES = new Set(['wai', 'gyeong', 'nae', 'sul']);
 const RARITIES = new Set(['basic', 'common', 'rare', 'ultra']);
 const MOD_KEYS = new Set(['maxHp', 'maxQi', 'handSize', 'startBlock', 'comboThreshold']);
-const HOOKS = new Set(['onCombatStart', 'onTurnStart', 'onKill', 'onCombatEnd']);
+const HOOKS = new Set(['onCombatStart', 'onTurnStart', 'onCombatEnd']);
 
 const errors = [];
 const fail = (msg) => errors.push(msg);
