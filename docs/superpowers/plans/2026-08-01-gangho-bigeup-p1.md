@@ -4602,8 +4602,11 @@ git commit -m "엔진: 저장 직렬화와 구획별 손상 격리"
 // tools/check_engine_purity.mjs
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ENGINE = new URL('../src/engine/', import.meta.url).pathname;
+// new URL(...).pathname 은 Windows 에서 `/C:/...` 를 내놓아 경로가 깨진다.
+// fileURLToPath 는 두 플랫폼에서 모두 올바른 경로를 준다.
+const ENGINE = fileURLToPath(new URL('../src/engine/', import.meta.url));
 const BANNED = [
   { re: /\bdocument\b/, why: 'document 참조' },
   { re: /\bwindow\b/, why: 'window 참조' },
@@ -5504,8 +5507,10 @@ test('턴 종료로 적이 행동하고 다음 턴이 온다', async ({ page }) 
 ```js
 // tools/verify_build.mjs
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
-const dist = new URL('../dist/', import.meta.url).pathname;
+// new URL(...).pathname 은 Windows 에서 `/C:/...` 를 내놓는다. fileURLToPath 를 쓴다.
+const dist = fileURLToPath(new URL('../dist/', import.meta.url));
 const problems = [];
 
 if (!existsSync(`${dist}index.html`)) problems.push('index.html 없음');
