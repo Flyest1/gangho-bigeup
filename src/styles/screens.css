@@ -170,6 +170,17 @@ button.deck-row:focus-visible { outline: 2px solid var(--gold); outline-offset: 
 .rest-action:disabled { opacity: 0.4; cursor: default; }
 
 /* ── 4. 장터 ──────────────────────────────────────────────────────────────── */
+.shop-removal { display: flex; flex-direction: column; gap: 0.6rem; }
+.shop-removal-heading {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--paper);
+  outline: none;
+}
+/* 진입하자마자 스크립트로 포커스를 받는 자리라, 포인터 사용자에게는 안 보여도
+   되는 :focus-visible 대신 :focus 로 항상 표시한다. */
+.shop-removal-heading:focus { outline: 2px solid var(--gold); outline-offset: 2px; }
 .shop-hint { font-size: 0.9rem; opacity: 0.85; margin: 0; }
 
 .shop-items {

@@ -66,10 +66,17 @@ const SEED_SYLLABLES = ['강', '호', '무', '림', '검', '도', '풍', '운', 
 // 이 파일에서 Math.random 을 쓰는 유일한 지점이다. 런의 시작 시드를 뽑는 곳이며,
 // 이후 게임의 모든 난수는 이 시드에서 파생되므로 런 자체는 여전히 재현 가능하다.
 // tools/check_engine_purity.mjs 가 아래 줄의 purity-allow 표식만 허용한다 (파일 전체가 아니다).
+//
+// 음절 4개(12^4 = 20,736가지)에 Date.now() 접미사를 더했던 이전 버전은, 동기 루프
+// 안에서 여러 번 부르면 Date.now() 가 사실상 상수가 되어 순전히 음절 공간에만
+// 기대는 것과 같았다. 50번 뽑았을 때 생일 문제 충돌 확률이 1 - e^(-50·49/(2·20736))
+// ≈ 5.7% 로, vitest 전체 스위트를 몇 번 돌리면 반드시 한 번은 실패하는 수준이었다.
+// 음절 6개(12^6 = 2,985,984가지)로 늘리면 같은 계산으로 충돌 확률이
+// 1 - e^(-50·49/(2·2,985,984)) ≈ 0.041%(약 1/2,439)까지 떨어진다 — 목표(1/1000
+// 미만)보다 24배 여유롭다. 접미사는 실질적인 엔트로피를 더하지 못하므로 뺐다.
 export function randomSeedText(): string {
-  let out = '';
-  for (let i = 0; i < 4; i++) {
-    out += SEED_SYLLABLES[Math.floor(Math.random() * SEED_SYLLABLES.length)]; // purity-allow: 런 시작 시드
-  }
-  return `${out}-${Date.now().toString(36).slice(-4)}`;
+  return Array.from(
+    { length: 6 },
+    () => SEED_SYLLABLES[Math.floor(Math.random() * SEED_SYLLABLES.length)]!, // purity-allow: 런 시작 시드
+  ).join('');
 }

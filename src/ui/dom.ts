@@ -36,7 +36,14 @@ export function trapFocus(container: HTMLElement): () => void {
   const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
   const focusables = (): HTMLElement[] => [...container.querySelectorAll<HTMLElement>(FOCUSABLE)];
-  focusables()[0]?.focus();
+  // container가 아직 문서에 붙지 않은 채로 이 함수가 불릴 수 있다 — 화면을 처음
+  // 그리는 도중에 이미 목록 상태로 시작하는 경우(예: 장터가 pendingRemoval을
+  // 든 채 렌더되는 경우)가 그렇다. 붙기 전에 focus()를 부르면 브라우저가 조용히
+  // 무시하므로, 큐에 미뤄 두면 이 렌더 함수가 반환되고 호출부(app.ts의 render())가
+  // 트리를 문서에 붙인 다음에 실행되어 항상 제대로 먹는다. 이미 붙어 있던 경우
+  // (실제 오버레이를 여는 클릭 핸들러 안)에도 한 틱 늦게 초점이 옮겨질 뿐이라
+  // 체감되는 차이가 없다.
+  queueMicrotask(() => focusables()[0]?.focus());
 
   const onKeydown = (event: KeyboardEvent): void => {
     if (event.key !== 'Tab') return;

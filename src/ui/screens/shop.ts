@@ -9,7 +9,7 @@ import type { RunState, ShopItem } from '../../engine/run';
 import type { AppApi } from '../app';
 import { cardAriaLabel, renderCardFace } from '../components/card';
 import { renderDeckList } from '../components/deckview';
-import { el } from '../dom';
+import { el, trapFocus } from '../dom';
 
 const REMOVE_ITEM = { hanja: '除', name: '초식 제거', text: '덱에서 초식 한 장을 골라 지운다.' };
 
@@ -21,14 +21,38 @@ export function renderShop(api: AppApi, run: RunState): HTMLElement {
   leave.addEventListener('click', () => api.dispatch({ type: 'leave' }));
 
   if (run.pendingRemoval) {
-    root.append(
+    // 덱 보기·수련의 목록은 배경 화면 위에 얹히는 오버레이라 "연 버튼으로
+    // 포커스를 되돌린다"는 게 뜻이 있다. 이 목록은 그게 아니다 — pendingRemoval
+    // 은 RunState 에 실려 있는 값이라 어느 장터에 들어가든 이 화면 자체가 통째로
+    // 이 모습으로 바뀐다(되돌아갈 "이전 화면"이 이 렌더 안에 없다). 그래서
+    // trapFocus 의 오프너 복원은 쓰지 않되, Tab 가두기는 그대로 두고(알림 배너가
+    // 떠 있어도 그리로 새지 않도록), 진입하자마자 초점을 이 구역의 제목으로 옮겨
+    // 키보드 사용자가 항상 목록 맨 앞에서 시작하게 한다. Esc 는 `나가기`와
+    // 같은 실제 동작(leave 디스패치)으로 이어져 막다른 길이 되지 않는다.
+    const heading = el('h2', { class: 'shop-removal-heading', textContent: '제거할 초식 고르기', tabIndex: -1 });
+    const section = el('section', { class: 'shop-removal' }, [
+      heading,
       el('p', { class: 'shop-hint', textContent: '제거할 초식을 고르시오.' }),
       renderDeckList(run.player.deck, {
         emptyText: '덱이 비어 있다.',
         onPick: (uid) => api.dispatch({ type: 'removeCard', uid }),
       }),
       leave,
-    );
+    ]);
+    section.setAttribute('aria-label', '초식 제거');
+    section.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        api.dispatch({ type: 'leave' });
+      }
+    });
+    root.append(section);
+    trapFocus(section);
+    // trapFocus 자체도 첫 초점 요소(카드 목록의 첫 버튼)를 큐에 미뤄 잡아준다.
+    // 이 화면은 목록 맨 앞이 아니라 제목에서 시작해야 하므로, 같은 방식으로
+    // 한 틱 미뤄 그 뒤에 덮어쓴다 — 둘 다 문서에 붙기 전에 부르면 조용히
+    // 무시되므로(위 trapFocus 주석 참조), 여기서도 순서를 지켜야 한다.
+    queueMicrotask(() => heading.focus());
     return root;
   }
 
