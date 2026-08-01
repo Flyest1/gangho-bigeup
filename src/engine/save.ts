@@ -27,7 +27,7 @@ export function serialize(save: SaveData): string {
 }
 
 function isMeta(value: unknown): value is MetaState {
-  if (typeof value !== 'object' || value === null) return false;
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
   const m = value as Record<string, unknown>;
   return m.version === 1
     && typeof m.runsStarted === 'number'
@@ -36,15 +36,41 @@ function isMeta(value: unknown): value is MetaState {
     && typeof m.bestFloors === 'number';
 }
 
+/** 맵이 실제로 걸어다닐 수 있는 모양인지 본다. */
+function isMap(value: unknown): value is { layers: string[][]; nodes: Record<string, unknown> } {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const m = value as Record<string, unknown>;
+  if (!Array.isArray(m.layers) || m.layers.length === 0) return false;
+  if (typeof m.nodes !== 'object' || m.nodes === null || Array.isArray(m.nodes)) return false;
+  return Object.keys(m.nodes as Record<string, unknown>).length > 0;
+}
+
 function isRun(value: unknown): value is RunState {
-  if (typeof value !== 'object' || value === null) return false;
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
   const r = value as Record<string, unknown>;
   if (r.version !== 1) return false;
   if (typeof r.seedText !== 'string' || typeof r.act !== 'number') return false;
-  if (typeof r.map !== 'object' || r.map === null) return false;
+  if (typeof r.rngState !== 'number') return false;
+  if (typeof r.screen !== 'string') return false;
+  if (r.result !== 'ongoing' && r.result !== 'victory' && r.result !== 'defeat') return false;
+
+  if (!isMap(r.map)) return false;
+
+  // currentNodeId 는 null 이거나 맵에 실재하는 노드를 가리켜야 한다. run.ts 는 이 값을
+  // non-null 로 역참조하고 availableNodes 는 맵 화면을 그리는 즉시 호출되므로, 헛도는
+  // id 가 통과하면 격리되는 대신 불러오자마자 터진다. 격리가 존재하는 이유가 이것이다.
+  if (r.currentNodeId !== null) {
+    if (typeof r.currentNodeId !== 'string') return false;
+    if (!(r.currentNodeId in r.map.nodes)) return false;
+  }
+
+  // 전투 화면인데 전투 상태가 객체가 아니면 첫 액션에서 터진다.
+  if (r.screen === 'combat' && (typeof r.combat !== 'object' || r.combat === null)) return false;
+
   const player = r.player as Record<string, unknown> | null;
   if (typeof player !== 'object' || player === null) return false;
   if (typeof player.hp !== 'number' || typeof player.maxHp !== 'number') return false;
+  if (typeof player.gold !== 'number') return false;
   if (!Array.isArray(player.deck) || player.deck.length === 0) return false;
   if (!Array.isArray(player.relics)) return false;
   return true;
@@ -61,7 +87,9 @@ export function parseSave(raw: string | null): { save: SaveData; quarantined: st
     return { save: emptySave(), quarantined: ['전체'] };
   }
 
-  if (typeof parsed !== 'object' || parsed === null) {
+  // 배열도 typeof 'object' 이다. 걸러내지 않으면 meta·run 이 모두 undefined 로 읽혀
+  // '키가 없는 정상 저장'과 구분되지 않고, 손상이 조용히 빈 저장으로 둔갑한다.
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
     return { save: emptySave(), quarantined: ['전체'] };
   }
 

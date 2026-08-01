@@ -63,6 +63,62 @@ describe('손상 격리', () => {
     broken.run.player.deck = [];
     expect(parseSave(JSON.stringify(broken)).save.run).toBeNull();
   });
+
+  it('JSON 배열은 전체를 격리한다', () => {
+    const out = parseSave('[1,2,3]');
+    expect(out.save).toEqual(emptySave());
+    expect(out.quarantined).toContain('전체');
+  });
+
+  it('map이 비어있으면 런은 버리고 meta는 살린다', () => {
+    const good = { ...emptySave(), meta: { ...emptySave().meta, runsWon: 5 }, run };
+    const broken = JSON.parse(serialize(good));
+    broken.run.map = {};
+    const out = parseSave(JSON.stringify(broken));
+    expect(out.save.meta.runsWon).toBe(5);
+    expect(out.save.run).toBeNull();
+    expect(out.quarantined).toContain('run');
+  });
+
+  it('currentNodeId가 맵에 없으면 런은 버리고 meta는 살린다', () => {
+    const good = { ...emptySave(), meta: { ...emptySave().meta, runsWon: 3 }, run };
+    const broken = JSON.parse(serialize(good));
+    broken.run.currentNodeId = '존재하지않는노드';
+    const out = parseSave(JSON.stringify(broken));
+    expect(out.save.meta.runsWon).toBe(3);
+    expect(out.save.run).toBeNull();
+    expect(out.quarantined).toContain('run');
+  });
+
+  it('screen이 combat인데 combat이 객체가 아니면 런은 버린다', () => {
+    const good = { ...emptySave(), meta: { ...emptySave().meta, runsWon: 2 }, run };
+    const broken = JSON.parse(serialize(good));
+    broken.run.screen = 'combat';
+    broken.run.combat = null;
+    const out = parseSave(JSON.stringify(broken));
+    expect(out.save.meta.runsWon).toBe(2);
+    expect(out.save.run).toBeNull();
+    expect(out.quarantined).toContain('run');
+  });
+
+  it('meta와 run이 동시에 깨졌으면 둘 다 격리한다', () => {
+    const broken = JSON.parse(serialize({ ...emptySave(), run }));
+    broken.meta = { invalid: 'meta' };
+    broken.run.player = null;
+    const out = parseSave(JSON.stringify(broken));
+    expect(out.save).toEqual(emptySave());
+    expect(out.quarantined).toContain('meta');
+    expect(out.quarantined).toContain('run');
+  });
+
+  it('meta 버전이 다르면 격리하고 run은 살린다', () => {
+    const good = { ...emptySave(), run };
+    const broken = JSON.parse(serialize(good));
+    broken.meta.version = 99;
+    const out = parseSave(JSON.stringify(broken));
+    expect(out.save.run).not.toBeNull();
+    expect(out.quarantined).toContain('meta');
+  });
 });
 
 describe('기록', () => {
