@@ -4813,7 +4813,9 @@ git commit -m "도구: 엔진 순수성 검사와 자동 플레이 시뮬"
 - Produces:
   - `src/platform/storage.ts` → `const SAVE_KEY = 'gangho.save.v1'`, `function loadSave(store?: Storage): { save: SaveData; quarantined: string[] }`, `function persistSave(save: SaveData, store?: Storage): boolean`, `function exportSave(save: SaveData): string`, `function importSave(text: string): SaveData | null`
   - `src/ui/dom.ts` → `function el<K extends keyof HTMLElementTagNameMap>(tag: K, props?: Partial<HTMLElementTagNameMap[K]> & { class?: string; dataset?: Record<string, string> }, children?: Array<Node | string>): HTMLElementTagNameMap[K]`, `function clear(node: HTMLElement): void`
-  - `src/ui/app.ts` → `function mountApp(root: HTMLElement): void`, `interface AppApi { dispatch(action: RunAction): void; newRun(seedText?: string): void; abandon(): void; getState(): AppState }`
+  - `src/ui/app.ts` → `function mountApp(root: HTMLElement): void`, `interface AppApi { dispatch(action: RunAction): void; newRun(seedText?: string): void; resume(): void; toTitle(): void; dismissNotice(): void; getState(): AppState }`
+
+`abandon()` 은 두지 않는다. 타이틀에서 새 강호행을 시작하면 `newRun` 이 `save.run` 을 덮어쓰므로 진행 중인 런을 버리는 길은 이미 있다. 별도 메서드를 두면 같은 일을 하는 경로가 둘이 된다.
   - `src/ui/screens/title.ts` → `function renderTitle(api: AppApi, state: AppState): HTMLElement`
 
 `storage.ts`는 `engine/` 밖에 있으므로 `localStorage`를 만져도 순수성 검사에 걸리지 않는다. 브라우저가 저장을 거부해도(사생활 모드) 게임은 계속 돌아가야 하므로 `persistSave`는 예외를 삼키고 `false`를 돌려준다.
