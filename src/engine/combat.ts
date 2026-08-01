@@ -76,10 +76,17 @@ export function startCombat(setup: CombatSetup, content: ContentIndex): CombatSt
 }
 
 function beginPlayerTurn(state: CombatState, content: ContentIndex): CombatState {
+  // 첫 턴(state.turn === 0 → 1)의 호신강기는 startCombat 이 mods.startBlock 으로 이미
+  // 심어 두었고, 그 위에 onCombatStart 훅(예: 청동 노패의 block:8)이 얹은 몫도 이미
+  // 실려 있다. 여기서 다시 mods.startBlock 으로 덮으면 onCombatStart 가 준 값이
+  // 첫 프레임이 뜨기도 전에 지워진다 — 둘째 턴부터는 평소대로 되돌린다. 이 되돌림이
+  // 없으면 낡은 죽립(매 턴 호신강기 5)이 첫 턴 이후로도 값을 그대로 들고 있어
+  // '매 턴'이 아니라 '첫 턴만'이 되어 버린다.
+  const firstTurn = state.turn === 0;
   let s: CombatState = { ...state, turn: state.turn + 1, phase: 'player' };
   const mods = relicMods(s.player.relics, content);
 
-  if (!s.keepBlock) s = { ...s, player: { ...s.player, block: mods.startBlock } };
+  if (!firstTurn && !s.keepBlock) s = { ...s, player: { ...s.player, block: mods.startBlock } };
   s = { ...s, keepBlock: false };
 
   const poison = getStatus(s.player.status, 'poison');

@@ -1,4 +1,5 @@
-import type { RunState } from './run';
+import { SCHOOLS } from './gamedata';
+import type { RunScreen, RunState } from './run';
 
 export interface MetaState {
   version: 1;
@@ -45,14 +46,39 @@ function isMap(value: unknown): value is { layers: string[][]; nodes: Record<str
   return Object.keys(m.nodes as Record<string, unknown>).length > 0;
 }
 
+/** RunScreen 의 실제 멤버인가. 화면 전환 스위치(app.ts)의 `default: renderMap`이
+ * 모든 값을 받아 주므로, 낯선 문자열이 통과하면 흰 화면 대신 "맵인데 걸을 수
+ * 없는" 상태로 조용히 격리 없이 굳는다 — availableNodes 가 screen==='map' 일 때만
+ * 실제 노드를 내주기 때문이다. */
+function isRunScreen(value: unknown): value is RunScreen {
+  return value === 'map' || value === 'combat' || value === 'reward'
+    || value === 'rest' || value === 'shop' || value === 'result';
+}
+
+/** 층수·처치·정예 집계. recordRunEnd 가 run.stats.floors 를 곧바로 읽으므로
+ * 없으면 저장할 때마다(전투 승패가 갈릴 때마다) 그 자리에서 터진다. */
+function isStats(value: unknown): value is { floors: number; kills: number; elites: number } {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const s = value as Record<string, unknown>;
+  return typeof s.floors === 'number' && typeof s.kills === 'number' && typeof s.elites === 'number';
+}
+
 function isRun(value: unknown): value is RunState {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
   const r = value as Record<string, unknown>;
   if (r.version !== 1) return false;
   if (typeof r.seedText !== 'string' || typeof r.act !== 'number') return false;
   if (typeof r.rngState !== 'number') return false;
-  if (typeof r.screen !== 'string') return false;
+  if (!isRunScreen(r.screen)) return false;
   if (r.result !== 'ongoing' && r.result !== 'victory' && r.result !== 'defeat') return false;
+
+  // run.school 은 현재 'gaebang' 하나뿐이지만 SCHOOLS 의 키로 확인해 둔다 — enterNode 가
+  // `SCHOOLS[run.school]`을 곧바로 역참조하므로(run.ts:184), 없는 문파는 다음 전투
+  // 진입에서 그 자리가 undefined 가 되어 `.maxQi` 읽기가 터진다.
+  if (typeof r.school !== 'string') return false;
+  if (!(r.school in SCHOOLS)) return false;
+  if (typeof r.nextUid !== 'number') return false;
+  if (!isStats(r.stats)) return false;
 
   if (!isMap(r.map)) return false;
 

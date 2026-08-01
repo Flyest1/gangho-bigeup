@@ -1,8 +1,9 @@
 // src/ui/components/enemy.ts
 import { portraitFor } from '../../art/portraits';
+import { computeDamage } from '../../engine/damage';
 import { CONTENT } from '../../engine/gamedata';
 import { LINE_LABEL, matchup } from '../../engine/stance';
-import type { EnemyState, Intent, IntentKind, Stance } from '../../engine/types';
+import type { EnemyState, Intent, IntentKind, Stance, StatusMap } from '../../engine/types';
 import { el } from '../dom';
 import { renderMeter, renderStatusBadges } from './bars';
 import { MATCHUP_LABEL, renderLineChip, renderMatchupChip } from './stance';
@@ -16,42 +17,73 @@ export const INTENT_MARK: Record<IntentKind, { mark: string; name: string }> = {
   special: { mark: '◇', name: '특수' },
 };
 
-function valueText(intent: Intent): string {
-  return intent.hits > 1 ? `${intent.value} ×${intent.hits}` : String(intent.value);
+/**
+ * 의도가 실제로 얼마나 아플지. 정적 데이터의 intent.value를 그대로 보이면 공격자의
+ * 기세·쇠약, 방어자의 취약이 전부 빠진 숫자가 된다 — 실제 피해는 damagePlayer가
+ * computeDamage(엔진, 순수)로 계산하므로, 화면도 그 계산을 그대로 물어 표시용
+ * amount를 얻는다(두 번째 구현이 아니라 같은 함수를 한 번 더 부르는 것뿐이다).
+ * 공격이 아닌 의도(방어·강화 등)는 애초에 computeDamage가 다루는 대상이 아니므로
+ * 원래 값 그대로 보인다.
+ */
+export function intentDisplayValue(
+  intent: Intent, enemyStatus: StatusMap, playerStance: Stance | null, playerStatus: StatusMap,
+): number {
+  if (intent.kind !== 'attack') return intent.value;
+  return computeDamage({
+    base: intent.value,
+    attackerLine: intent.line,
+    attackerStatus: enemyStatus,
+    defenderStance: playerStance,
+    defenderStatus: playerStatus,
+    defenderBlock: 0,
+  }).amount;
 }
 
-export function intentAriaLabel(intent: Intent): string {
+function valueText(value: number, hits: number): string {
+  return hits > 1 ? `${value} ×${hits}` : String(value);
+}
+
+export function intentAriaLabel(intent: Intent, value: number): string {
   const kind = INTENT_MARK[intent.kind];
   const hits = intent.hits > 1 ? ` ${intent.hits}회` : '';
-  return `다음 행동: ${intent.label}, ${kind.name} ${intent.value}${hits}, ${LINE_LABEL[intent.line].name}`;
+  return `다음 행동: ${intent.label}, ${kind.name} ${value}${hits}, ${LINE_LABEL[intent.line].name}`;
+}
+
+export interface IntentContext {
+  playerStance?: Stance;
+  playerStatus?: StatusMap;
+  enemyStatus?: StatusMap;
 }
 
 /**
  * 의도 블록. 적이 무엇을 할지와 **어느 계열로** 할지를 함께 낸다. 계열을 보여야
  * 플레이어가 다음 턴의 자세를 미리 정할 수 있다.
  */
-export function renderIntent(intent: Intent | null, playerStance?: Stance): HTMLElement {
+export function renderIntent(intent: Intent | null, ctx: IntentContext = {}): HTMLElement {
   if (!intent) {
     const unknown = el('span', { class: 'intent intent-none', textContent: '의도 없음' });
     unknown.setAttribute('aria-label', '다음 행동을 알 수 없다');
     return unknown;
   }
 
+  const value = intentDisplayValue(
+    intent, ctx.enemyStatus ?? {}, ctx.playerStance ?? null, ctx.playerStatus ?? {},
+  );
   const kind = INTENT_MARK[intent.kind];
   const box = el('span', { class: `intent intent-${intent.kind}` }, [
     el('span', { class: 'intent-mark', textContent: kind.mark }),
-    el('span', { class: 'intent-value', textContent: valueText(intent) }),
+    el('span', { class: 'intent-value', textContent: valueText(value, intent.hits) }),
     renderLineChip(intent.line, { withName: false }),
     el('span', { class: 'intent-label', textContent: intent.label }),
   ]);
 
-  if (playerStance && intent.kind === 'attack') {
-    const m = matchup(intent.line, playerStance);
+  if (ctx.playerStance && intent.kind === 'attack') {
+    const m = matchup(intent.line, ctx.playerStance);
     box.append(renderMatchupChip(m));
     box.classList.add(`verdict-${m}`);
   }
 
-  box.setAttribute('aria-label', intentAriaLabel(intent));
+  box.setAttribute('aria-label', intentAriaLabel(intent, value));
   return box;
 }
 
@@ -59,6 +91,8 @@ export interface EnemyOpts {
   selected: boolean;
   /** 있으면 의도에 내 자세 기준 상성을, 이름 옆에 내 계열 기준 상성을 붙인다. */
   playerStance?: Stance;
+  /** 방어자(나) 상태. 의도 수치에 취약 보정을 반영하려면 필요하다. */
+  playerStatus?: StatusMap;
   /** 손패에서 초식을 고른 상태라 탭이 곧 발동이 되는가. */
   targetable?: boolean;
 }
@@ -123,7 +157,9 @@ export function renderEnemy(enemy: EnemyState, opts: EnemyOpts): HTMLElement {
   }
 
   node.append(renderStatusBadges(enemy.status));
-  node.append(renderIntent(enemy.intent, opts.playerStance));
+  node.append(renderIntent(enemy.intent, {
+    playerStance: opts.playerStance, playerStatus: opts.playerStatus, enemyStatus: enemy.status,
+  }));
 
   const parts = [enemy.name, `체력 ${enemy.hp} / ${enemy.maxHp}`];
   if (enemy.block > 0) parts.push(`호신강기 ${enemy.block}`);
@@ -131,7 +167,12 @@ export function renderEnemy(enemy: EnemyState, opts: EnemyOpts): HTMLElement {
   if (opts.playerStance) {
     parts.push(`내 ${LINE_LABEL[opts.playerStance].name}으로 치면 ${MATCHUP_LABEL[matchup(opts.playerStance, enemy.stance)].name}`);
   }
-  if (enemy.intent) parts.push(intentAriaLabel(enemy.intent));
+  if (enemy.intent) {
+    const value = intentDisplayValue(
+      enemy.intent, enemy.status, opts.playerStance ?? null, opts.playerStatus ?? {},
+    );
+    parts.push(intentAriaLabel(enemy.intent, value));
+  }
   // 눈으로 보는 사람은 의도 옆의 상성 도장으로 이 적이 나를 어떻게 치는지 안다.
   // 그 판정이 이름표에도 실려야 한다 — 자세는 공격만큼이나 방어를 좌우하고,
   // 없으면 스크린리더 사용자는 자세 띠에 잡히는 초점 적 하나만 알게 된다.

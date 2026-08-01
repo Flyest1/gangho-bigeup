@@ -4,7 +4,7 @@
 // `.hand .card`, `.enemy[data-hp]`, `.turn-indicator`, `턴 종료` 버튼)와, 화면이
 // 규칙을 다시 계산하지 않는다는 성질(내공이 모자란 카드는 아예 못 낸다)을 못박는다.
 import { beforeEach, afterEach, describe, expect, it } from 'vitest';
-import { startCombat } from '../../src/engine/combat';
+import { applyAction, startCombat } from '../../src/engine/combat';
 import { CONTENT } from '../../src/engine/gamedata';
 import { startRun, type RunAction, type RunState } from '../../src/engine/run';
 import type { CardInstance, CombatState } from '../../src/engine/types';
@@ -260,7 +260,7 @@ describe('전투 화면 — 접근성', () => {
     expect(label.startsWith('벽타, 외공, 내공 1, 6 피해.')).toBe(true);
   });
 
-  it('의도 이름표가 행동·수치·계열을 읽는다', () => {
+  it('의도 이름표가 행동·수치·계열을 읽는다 (수치는 상성까지 반영한 실제 값)', () => {
     const combat = makeCombat(['deulgae']);
     const enemy = {
       ...combat.enemies[0]!,
@@ -268,8 +268,33 @@ describe('전투 화면 — 접근성', () => {
     };
     const { root } = mount({ ...combat, enemies: [enemy] });
     const label = root.querySelector('.intent')!.getAttribute('aria-label');
-    expect(label).toBe('다음 행동: 물어뜯기, 공격 6 2회, 경공');
-    expect(root.querySelector('.intent-value')!.textContent).toBe('6 ×2');
+    // 내 자세는 외공(byeokta 덱 기준), 의도 계열은 경공 → 외공이 경공을 누르므로
+    // 저항(×0.75). floor(6 × 0.75) = 4. 정적 데이터의 6을 그대로 보이면 안 된다 —
+    // computeDamage가 실제로 매기는 값과 같아야 한다(Finding 5).
+    expect(label).toBe('다음 행동: 물어뜯기, 공격 4 2회, 경공');
+    expect(root.querySelector('.intent-value')!.textContent).toBe('4 ×2');
+  });
+
+  it('의도에 적힌 수치가 실제로 맞았을 때 깎이는 체력과 정확히 같다 (Finding 5)', () => {
+    // 기세 3을 얹은 적의 공격 의도. 정적 데이터의 value(6)를 그대로 보이면
+    // 기세가 통째로 빠진 6이 뜨고, 실제로 맞으면 (6+3)×0.75(외공↔경공 저항)=6이
+    // 깎여 화면과 실제가 어긋난다. 한 테스트에서 두 값을 나란히 재 두면 둘 중
+    // 하나만 바뀌는 회귀(엔진은 고쳤는데 화면을 안 고치거나, 그 반대)를 잡는다.
+    const combat = makeCombat(['deulgae']);
+    const enemy = {
+      ...combat.enemies[0]!,
+      status: { momentum: 3 },
+      intent: { actionId: 'mul', kind: 'attack' as const, line: 'gyeong' as const, value: 6, hits: 1, label: '물어뜯기' },
+    };
+    const rigged: CombatState = { ...combat, enemies: [enemy] };
+    const { root } = mount(rigged);
+
+    const displayed = Number(root.querySelector('.intent-value')!.textContent);
+    const after = applyAction(rigged, { type: 'endTurn' }, CONTENT);
+    const actualLoss = rigged.player.hp - after.player.hp;
+
+    expect(displayed).toBe(6);
+    expect(actualLoss).toBe(displayed);
   });
 
   it('적 이름표가 그 적이 나를 어떻게 치는지도 읽는다', () => {
@@ -401,5 +426,35 @@ describe('전투 화면 — 손패/버린 패 모달의 초점 관리', () => {
     const trigger = root.querySelector<HTMLButtonElement>('[data-fkey="pile:draw"]')!;
     const close = root.querySelector<HTMLButtonElement>('.pile-view button')!;
     expect(close.dataset.fkey).not.toBe(trigger.dataset.fkey);
+  });
+});
+
+describe('전투 화면 — 손상 복구 (Finding 3)', () => {
+  it('combat이 없으면(손상 저장) 타이틀로 버튼이 실제로 타이틀로 나간다', () => {
+    // run.ts가 screen='combat'과 combat을 항상 함께 세우므로 정상 플레이로는
+    // 도달하지 않지만, isRun은 이 조합을 (combat이 객체이기만 하면) 막지 않는다.
+    // 예전 버튼은 leave를 보냈는데, run.ts의 leave 처리는 screen이 'shop'일 때만
+    // 뜻이 있어 여기서는 막다른 길이었다.
+    const base = startRun('전투깨짐', CONTENT);
+    const run: RunState = { ...base, screen: 'combat', combat: null };
+    let toTitleCalled = false;
+    const api: AppApi = {
+      dispatch: () => { throw new Error('타이틀로는 dispatch가 아니라 toTitle을 불러야 한다'); },
+      newRun: () => {},
+      toTitle: () => { toTitleCalled = true; },
+      resume: () => {},
+      dismissNotice: () => {},
+      dismissSaveNotice: () => {},
+      getState: () => ({
+        save: { version: 1, meta: { version: 1, runsStarted: 0, runsWon: 0, bestAct: 0, bestFloors: 0 }, run },
+        view: 'run', notice: null, saveNotice: null,
+      } satisfies AppState),
+    };
+    const root = renderCombat(api, run);
+
+    const btn = [...root.querySelectorAll('button')].find((b) => b.textContent === '타이틀로');
+    expect(btn).not.toBeUndefined();
+    btn!.click();
+    expect(toTitleCalled).toBe(true);
   });
 });

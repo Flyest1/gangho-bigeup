@@ -101,7 +101,16 @@ export function damagePlayer(
   };
 }
 
-function resolveTargets(state: CombatState, target: EffectTarget, src: EffectSource): EnemyState[] {
+// target은 'enemy' | 'allEnemies'로만 좁혀 둔다. 'self'는 EffectTarget의 멤버지만
+// 이 함수의 호출자 셋(damage의 target은 애초에 'self'를 못 갖는 타입이고,
+// applyStatus는 target==='self'일 때 이 함수를 부르기 전에 분기해 처리하며,
+// ifBreak·counterStance는 'enemy'를 하드코딩한다) 중 누구도 'self'를 들고 오지
+// 않는다. 예전에는 이 함수가 EffectTarget 전체를 받으면서도 'self'를 따로
+// 다루지 않아, 언젠가 실수로 넘어오면 조용히 "적 하나"로 처리해 버릴 뻔한 죽은
+// 분기였다 — 타입에서 아예 빼서 그 경우 자체가 컴파일에서 막히게 한다.
+function resolveTargets(
+  state: CombatState, target: Exclude<EffectTarget, 'self'>, src: EffectSource,
+): EnemyState[] {
   const alive = state.enemies.filter((e) => e.hp > 0);
   if (target === 'allEnemies') return alive;
   const chosen = alive.find((e) => e.uid === src.targetUid);
@@ -142,7 +151,7 @@ export function applyEffects(
         s = { ...s, player: { ...s.player, hp: Math.min(s.player.maxHp, s.player.hp + atom.value) } };
         break;
       case 'applyStatus': {
-        if ((atom.target ?? 'enemy') === 'self') {
+        if (atom.target === 'self') {
           s = { ...s, player: { ...s.player, status: addStatus(s.player.status, atom.status, atom.value) } };
           break;
         }

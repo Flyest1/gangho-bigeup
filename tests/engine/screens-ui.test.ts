@@ -96,6 +96,34 @@ describe('보상 화면', () => {
     const after = applyRunAction(run, sent[0]!, CONTENT);
     expect(after.player.deck).toHaveLength(run.player.deck.length + 1);
   });
+
+  it('reward가 null이면(손상 저장) takeCard가 아니라 타이틀로 실제로 나간다 (Finding 3)', () => {
+    // run.ts가 screen='reward'와 reward를 항상 함께 세우므로 정상 플레이로는
+    // 도달하지 않지만, isRun은 이 조합을 막지 않는다 — 손상된 저장이 이 화면에
+    // 멈춰 서면 나갈 길이 있어야 한다. 예전 버튼은 takeCard(cardId:null)를 보냈는데,
+    // leaveReward(run.ts)는 reward가 null이면 run을 그대로 돌려줘 막다른 길이었다.
+    const base = rewardRun();
+    const run: RunState = { ...base, reward: null };
+    let toTitleCalled = false;
+    const api: AppApi = {
+      dispatch: () => { throw new Error('타이틀로는 dispatch가 아니라 toTitle을 불러야 한다'); },
+      newRun: () => {},
+      toTitle: () => { toTitleCalled = true; },
+      resume: () => {},
+      dismissNotice: () => {},
+      dismissSaveNotice: () => {},
+      getState: () => ({
+        save: { version: 1, meta: { version: 1, runsStarted: 0, runsWon: 0, bestAct: 0, bestFloors: 0 }, run },
+        view: 'run', notice: null, saveNotice: null,
+      } satisfies AppState),
+    };
+    const root = mount(renderReward(api, run));
+
+    const btn = [...root.querySelectorAll('button')].find((b) => b.textContent === '타이틀로');
+    expect(btn).not.toBeUndefined();
+    btn!.click();
+    expect(toTitleCalled).toBe(true);
+  });
 });
 
 describe('객잔 화면', () => {

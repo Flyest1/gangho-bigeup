@@ -352,6 +352,13 @@ export function applyRunAction(
     }
 
     case 'leave':
-      return run.screen === 'shop' ? { ...run, screen: 'map', shop: null } : run;
+      // pendingRemoval도 함께 지운다. 그러지 않으면 제거를 사 두고(70냥 지불,
+      // 이미 차감됨) 쓰지 않은 채 나간 값이 RunState에 그대로 남아, 다음에
+      // 들어가는 아무 장터든 진열대 대신 제거 목록으로 곧장 열리며 그 장터의
+      // 진짜 물건(카드·기물)은 카드를 하나 지우기 전까진 볼 수조차 없게 된다.
+      // 나가기를 누른 시점(제거 목록을 보면서 스스로 고른 것)에 지우는 편이,
+      // 다음 장터 진입 시점까지 미뤄 그 자리에서 조용히 사라지게 하는 것보다
+      // 정직하다 — 자신이 무엇을 포기하는지 최소한 이 화면에서는 보고 있었다.
+      return run.screen === 'shop' ? { ...run, screen: 'map', shop: null, pendingRemoval: false } : run;
   }
 }

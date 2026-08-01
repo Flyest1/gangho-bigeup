@@ -2,9 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { makeContentIndex } from '../../src/engine/content';
 import { relicMods, triggerRelics } from '../../src/engine/relics';
 import { startCombat, applyAction } from '../../src/engine/combat';
+import { CONTENT } from '../../src/engine/gamedata';
 import { comboFires } from '../../src/engine/stance';
 import type { RelicDef } from '../../src/engine/relics';
-import type { CardDef } from '../../src/engine/types';
+import type { CardDef, CardInstance } from '../../src/engine/types';
 import type { EnemyDef } from '../../src/engine/enemies';
 
 const RELICS: RelicDef[] = [
@@ -118,5 +119,39 @@ describe('triggerRelics', () => {
     const s = startCombat(setup(['bigeup']), content);
     const before = s.player.status.momentum ?? 0;
     expect(triggerRelics(s, 'onCombatEnd', content).player.status.momentum ?? 0).toBe(before);
+  });
+});
+
+describe('청동 노패(dongpae) — Finding 1: onCombatStart의 block이 첫 턴을 넘겨 살아남는다', () => {
+  // 실제 데이터(src/data/relics.json)로 검증한다 — 합성 mock이 아니라 진짜 dongpae가
+  // 고쳐졌는지 봐야 한다. beginPlayerTurn이 turn1에서도 무조건 block을 mods.startBlock
+  // 으로 되돌리면(수정 전 버그), onCombatStart가 얹은 값이 첫 프레임 전에 지워진다.
+  const REAL_DECK: CardInstance[] = Array.from(
+    { length: 5 }, (_, i) => ({ uid: `rd${i}`, defId: 'byeokta', upgraded: false }),
+  );
+
+  function combatWith(relics: string[]) {
+    return startCombat({
+      seed: 1,
+      player: { hp: 80, maxHp: 80, maxQi: 3, stance: 'wai' as const, relics },
+      enemyIds: ['deulgae'],
+      deck: REAL_DECK,
+    }, CONTENT);
+  }
+
+  it('청동 노패만 있으면 첫 턴 호신강기가 8이다 (수정 전에는 0이었다)', () => {
+    expect(combatWith(['dongpae']).player.block).toBe(8);
+  });
+
+  it('낡은 죽립은 첫 턴만이 아니라 둘째 턴에도 호신강기 5를 되돌린다 (회귀 방지)', () => {
+    let s = combatWith(['jungnip']);
+    expect(s.player.block).toBe(5);
+    s = applyAction(s, { type: 'endTurn' }, CONTENT);
+    expect(s.turn).toBe(2);
+    expect(s.player.block).toBe(5);
+  });
+
+  it('청동 노패와 낡은 죽립을 함께 지니면 첫 턴에 8과 5가 둘 다 실린다', () => {
+    expect(combatWith(['dongpae', 'jungnip']).player.block).toBe(13);
   });
 });

@@ -17,12 +17,15 @@ export function renderReward(api: AppApi, run: RunState): HTMLElement {
 
   if (!reward) {
     // 도달할 수 없는 상태(run.ts 가 screen='reward' 와 reward 를 함께 세운다)지만,
-    // 손상된 저장이 여기까지 왔을 때 흰 화면 대신 나갈 길을 준다.
+    // 손상된 저장이 여기까지 왔을 때 흰 화면 대신 나갈 길을 준다. `takeCard`는
+    // reward 가 null 이면 run.ts(leaveReward)가 그대로 되돌리는 무효 액션이라
+    // 나가는 길이 되지 못한다 — `toTitle`은 항상 유효하고, 진행 중인 런은
+    // 그대로 둔 채 타이틀로만 뺀다(타이틀의 '이어하기'로 다시 들어올 수 있다).
     root.append(
       el('p', { textContent: '보상 정보가 없다.' }),
       el('button', {
-        class: 'btn', type: 'button', textContent: '맵으로',
-        onclick: () => api.dispatch({ type: 'takeCard', cardId: null }),
+        class: 'btn', type: 'button', textContent: '타이틀로',
+        onclick: () => api.toTitle(),
       }),
     );
     return root;

@@ -29,8 +29,14 @@ import { bindCombatKeys } from '../input';
  * 여러 대상 중 하나라도 파훼면 파훼로, 아니면 저항/평타 중 있는 대로 대표 판정을
  * 고른다. 소리는 한 번만 나므로 "이번 발동에서 가장 중요한 신호"를 골라야 한다 —
  * 파훼가 이 게임에서 가장 중요한 순간이라는 브리핑의 요구를 그대로 따른다.
+ *
+ * 이름을 `worstMatchup`이 아니라 `dominantMatchup`이라 부른다. 이 함수는 호출하는
+ * 쪽의 입장을 모른다 — reactToCardPlay에서는 "내가 상대를 파훼"(나에게 최선)를
+ * 고르고, reactToEnemyTurn에서는 "적이 나를 파훼"(나에게 최악)를 고른다. 파훼 >
+ * 저항 > 평타라는 같은 우선순위를 양쪽에 그대로 쓸 뿐이니, "가장 두드러지는
+ * 신호"이지 어느 쪽에게도 고정된 "최악"이 아니다.
  */
-function worstMatchup(pairs: Array<{ attacker: Line; defender: Stance }>): Matchup {
+function dominantMatchup(pairs: Array<{ attacker: Line; defender: Stance }>): Matchup {
   let seen: Matchup = 'neutral';
   for (const { attacker, defender } of pairs) {
     const m = matchup(attacker, defender);
@@ -54,7 +60,7 @@ function reactToCardPlay(def: CardDef, before: CombatState, after: CombatState):
     return !now || now.hp < e.hp || now.block < e.block;
   });
   if (struck.length > 0 && def.line !== 'sul') {
-    const m = worstMatchup(struck.map((e) => ({ attacker: def.line, defender: e.stance })));
+    const m = dominantMatchup(struck.map((e) => ({ attacker: def.line, defender: e.stance })));
     sfx.play(m === 'break' ? 'break' : 'hit');
   }
 
@@ -68,7 +74,7 @@ function reactToCardPlay(def: CardDef, before: CombatState, after: CombatState):
 function reactToEnemyTurn(before: CombatState, after: CombatState): void {
   if (after.player.hp < before.player.hp) {
     const attackers = before.enemies.filter((e) => e.hp > 0 && e.intent?.kind === 'attack');
-    const m = worstMatchup(
+    const m = dominantMatchup(
       attackers.map((e) => ({ attacker: e.intent!.line, defender: before.player.stance })),
     );
     sfx.play(m === 'break' ? 'break' : 'hit');
@@ -88,13 +94,15 @@ export function renderCombat(api: AppApi, run: RunState): HTMLElement {
   const combat = run.combat;
   if (!combat) {
     // 도달할 수 없는 상태(run.ts 가 screen='combat' 과 combat 을 함께 세운다)지만,
-    // 손상된 저장이 여기까지 오면 흰 화면 대신 나갈 길을 준다.
+    // 손상된 저장이 여기까지 오면 흰 화면 대신 나갈 길을 준다. `leave`는 장터
+    // 화면에서만 뜻이 있는 액션(run.ts)이라 여기서는 무효하다 — `toTitle`은
+    // 항상 유효하고, 진행 중인 런은 그대로 둔 채 타이틀로만 뺀다.
     return el('main', { class: 'screen combat' }, [
       el('h1', { textContent: '전투' }),
       el('p', { textContent: '전투 상태가 없습니다.' }),
       el('button', {
-        class: 'btn', type: 'button', textContent: '지도로',
-        onclick: () => api.dispatch({ type: 'leave' }),
+        class: 'btn', type: 'button', textContent: '타이틀로',
+        onclick: () => api.toTitle(),
       }),
     ]);
   }
@@ -273,6 +281,7 @@ function renderBattle(api: AppApi, run: RunState, combat: CombatState): HTMLElem
       const node = renderEnemy(enemy, {
         selected: targeting ? false : enemy.uid === focusEnemy()?.uid,
         playerStance: combat.player.stance,
+        playerStatus: combat.player.status,
         targetable: targeting,
       });
       node.addEventListener('click', () => tapEnemy(enemy));

@@ -288,6 +288,30 @@ describe('카드 제거', () => {
       player: { ...r.player, deck: r.player.deck.slice(0, 1) } };
     expect(applyRunAction(one, { type: 'removeCard', uid: one.player.deck[0]!.uid }, CONTENT).player.deck).toHaveLength(1);
   });
+
+  it('제거를 사고 카드를 지우지 않은 채 나가면 대기 상태가 풀린다 (Finding 4)', () => {
+    // 지우지 않고 나가면(pendingRemoval이 leave를 넘어 살아남으면) 다음에 들어가는
+    // 아무 장터든 진열대 대신 이 제거 목록으로 곧장 열려, 그 장터의 진짜 물건은
+    // 카드를 하나 지우기 전까진 볼 수조차 없어진다. 70냥은 이미 나갔으므로 되돌려
+    // 주지 않되(그 값은 실제로 준 카드 제거라는 효과 없이 소모된다), 대기 상태
+    // 자체는 나가는 순간 함께 씻어야 다음 장터가 멀쩡하다.
+    const r = startRun('제거나가기', CONTENT);
+    const s: RunState = {
+      ...r, screen: 'shop', player: { ...r.player, gold: 100 },
+      shop: [{ kind: 'remove', id: 'remove', price: 70 }],
+    };
+    const afterBuy = applyRunAction(s, { type: 'buy', index: 0 }, CONTENT);
+    expect(afterBuy.pendingRemoval).toBe(true);
+    expect(afterBuy.player.gold).toBe(30);
+
+    const afterLeave = applyRunAction(afterBuy, { type: 'leave' }, CONTENT);
+    expect(afterLeave.pendingRemoval).toBe(false);
+    expect(afterLeave.screen).toBe('map');
+
+    // 다음 장터가 진열대로 정상 열린다 — pendingRemoval이 새어나가지 않았다.
+    const nextShop: RunState = { ...afterLeave, screen: 'shop', shop: [{ kind: 'card', id: 'gangsu', price: 30 }] };
+    expect(nextShop.pendingRemoval).toBe(false);
+  });
 });
 
 describe('결정성', () => {
