@@ -417,7 +417,7 @@ Expected: 워크플로 성공, `https://flyest1.github.io/gangho-bigeup/`에서 
 **Interfaces:**
 - Consumes: 없음
 - Produces:
-  - `class Rng { state: number; next(): number; int(n: number): number; range(min: number, max: number): number; pick<T>(a: readonly T[]): T; shuffle<T>(a: readonly T[]): T[]; weighted<T>(e: ReadonlyArray<readonly [T, number]>): T; fork(): Rng }`
+  - `class Rng { state: number; next(): number; int(n: number): number; range(min: number, max: number): number; pick<T>(a: readonly T[]): T; shuffle<T>(a: readonly T[]): T[]; weighted<T>(e: ReadonlyArray<readonly [T, number]>): T }`
   - `function seedFrom(text: string): number`
   - `function randomSeedText(): string`
 
@@ -507,15 +507,6 @@ describe('Rng', () => {
     expect(a / 4000).toBeLessThan(0.80);
   });
 
-  it('fork는 부모와 독립된 스트림을 만든다', () => {
-    const parent = new Rng(seedFrom('분기'));
-    const child = parent.fork();
-    const before = parent.state;
-    child.next(); child.next();
-    expect(parent.state).toBe(before);
-    expect(child.state).not.toBe(before);
-  });
-
   it('randomSeedText는 매번 다른 문자열을 낸다', () => {
     const set = new Set(Array.from({ length: 50 }, () => randomSeedText()));
     expect(set.size).toBe(50);
@@ -585,11 +576,6 @@ export class Rng {
     }
     return entries[entries.length - 1]![0];
   }
-
-  /** 부모 스트림을 소비하지 않고 독립된 자식 스트림을 만든다. */
-  fork(): Rng {
-    return new Rng((Math.imul(this.state ^ 0x9e3779b9, 0x85ebca6b) >>> 0) + 1);
-  }
 }
 
 export function seedFrom(text: string): number {
@@ -603,6 +589,9 @@ export function seedFrom(text: string): number {
 
 const SEED_SYLLABLES = ['강', '호', '무', '림', '검', '도', '풍', '운', '설', '월', '영', '협'];
 
+// 이 파일에서 Math.random 을 쓰는 유일한 지점이다. 런의 시작 시드를 뽑는 곳이며,
+// 이후 게임의 모든 난수는 이 시드에서 파생되므로 런 자체는 여전히 재현 가능하다.
+// tools/check_engine_purity.mjs 가 rng.ts 의 이 호출만 화이트리스트로 허용한다.
 export function randomSeedText(): string {
   let out = '';
   for (let i = 0; i < 4; i++) {
@@ -612,12 +601,14 @@ export function randomSeedText(): string {
 }
 ```
 
-`randomSeedText`는 `Math.random`을 쓰는 유일한 예외다. 런 시작 시드를 뽑는 지점이며 이후 모든 난수는 이 시드에서 파생된다. `tools/check_engine_purity.mjs`는 이 함수만 화이트리스트에 넣는다 (Task 14).
+`randomSeedText`는 `Math.random`을 쓰는 유일한 예외이며, 그 이유를 설명하는 주석이 소스 파일 안에 반드시 남아 있어야 한다 (`tools/check_engine_purity.mjs`가 이 지점만 화이트리스트에 넣기 때문이다 — Task 14).
+
+`fork()`는 두지 않는다. 부모를 소비하지 않고 자식 시드를 `state`만으로 계산하면 연속 호출이 같은 스트림을 두 번 내놓는데, P1의 어떤 모듈도 서브스트림을 쓰지 않는다. 필요해지는 시점에 제대로 설계해 넣는다.
 
 - [ ] **Step 4: 테스트가 통과하는지 확인**
 
 Run: `npx vitest run tests/engine/rng.test.ts`
-Expected: PASS — 11 tests
+Expected: PASS — 10 tests
 
 - [ ] **Step 5: 커밋**
 
