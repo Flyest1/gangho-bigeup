@@ -1,5 +1,21 @@
+import { sfx } from '../../audio/sfx';
 import type { AppApi, AppState } from '../app';
 import { el } from '../dom';
+
+/** 소리 켬/끔. 어디서든 닿을 수 있어야 하니 항상 첫 화면인 타이틀에 둔다. */
+function renderSoundToggle(): HTMLElement {
+  const btn = el('button', { class: 'btn quiet sound-toggle', type: 'button' });
+  const sync = (): void => {
+    btn.textContent = sfx.enabled ? '소리 켜짐 ♪' : '소리 꺼짐 ⨯';
+    btn.setAttribute('aria-pressed', String(sfx.enabled));
+  };
+  sync();
+  btn.addEventListener('click', () => {
+    sfx.setEnabled(!sfx.enabled);
+    sync();
+  });
+  return btn;
+}
 
 export function renderTitle(api: AppApi, state: AppState): HTMLElement {
   const { meta, run } = state.save;
@@ -10,13 +26,14 @@ export function renderTitle(api: AppApi, state: AppState): HTMLElement {
 
   const actions = el('div', { class: 'title-actions' }, [
     el('button', {
-      class: 'btn primary', textContent: '새로운 강호행', onclick: () => api.newRun(seedInput.value),
+      class: 'btn primary', type: 'button', textContent: '새로운 강호행',
+      onclick: () => api.newRun(seedInput.value),
     }),
   ]);
 
   if (run && run.result === 'ongoing') {
     actions.prepend(el('button', {
-      class: 'btn primary', textContent: `이어하기 — ${run.act}막`,
+      class: 'btn primary', type: 'button', textContent: `이어하기 — ${run.act}막`,
       onclick: () => api.resume(),
     }));
   }
@@ -28,6 +45,7 @@ export function renderTitle(api: AppApi, state: AppState): HTMLElement {
     el('label', { class: 'seed-label', htmlFor: 'seed-input', textContent: '시드' }),
     seedInput,
     actions,
+    renderSoundToggle(),
     el('p', { class: 'title-stats', textContent:
       `강호행 ${meta.runsStarted}회 · 완주 ${meta.runsWon}회 · 최고 ${meta.bestAct}막 ${meta.bestFloors}층` }),
     el('p', { class: 'fan', textContent:

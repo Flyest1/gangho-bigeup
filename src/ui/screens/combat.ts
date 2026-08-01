@@ -22,7 +22,7 @@ import { renderEnemy } from '../components/enemy';
 import {
   MATCHUP_LABEL, comboThreshold, renderLineChip, renderStanceBar, summarizeVerdict, verdictAriaText,
 } from '../components/stance';
-import { clear, el } from '../dom';
+import { clear, el, trapFocus } from '../dom';
 import { bindCombatKeys } from '../input';
 
 /**
@@ -389,7 +389,16 @@ function renderBattle(api: AppApi, run: RunState, combat: CombatState): HTMLElem
     for (const card of cards) list.append(renderCardRow(defOf(card), card.upgraded));
     if (cards.length === 0) list.append(el('li', { class: 'pile-empty', textContent: '비어 있다.' }));
 
-    const close = el('button', { class: 'btn', type: 'button', textContent: '닫기' });
+    // 뿌리(root)가 이 아래에서도 여전히 손패·행동바를 들고 있다(paint()가 그 위에
+    // 이 오버레이를 얹을 뿐 걷어내지 않는다) — Tab을 가두지 않으면 화면 뒤로 보이지도
+    // 않는 카드/버튼으로 새어나간다. dataset.fkey는 paint()의 자체 초점 복원
+    // 장치(activeKey)가 쓰는 열쇠다 — 이 화면은 매 조작마다 통째로 다시 그려지므로
+    // (map.ts·rest.ts처럼 바탕 화면이 그대로 남는 오버레이가 아니다) trapFocus가
+    // 기억하는 DOM 참조는 다시 그리는 순간 못 쓰게 된다. 그래서 "닫기"에도 같은
+    // pile:${kind} 열쇠를 달아, 닫힐 때 이 자리를 열었던 바로 그 버튼으로 되돌아가게 한다.
+    const close = el('button', {
+      class: 'btn', type: 'button', textContent: '닫기', dataset: { fkey: `pile:${kind}` },
+    });
     close.addEventListener('click', () => { pile = null; paint(); });
 
     const box = el('div', { class: 'pile-view' }, [
@@ -402,6 +411,11 @@ function renderBattle(api: AppApi, run: RunState, combat: CombatState): HTMLElem
     box.setAttribute('role', 'dialog');
     box.setAttribute('aria-modal', 'true');
     box.setAttribute('aria-label', PILE_LABEL[kind]);
+
+    // 해제 함수는 버리지 않고 무시한다 — 이 화면은 열릴 때마다(paint()가 통째로
+    // 다시 그릴 때마다) box를 새로 만들므로, 이전 box와 그 keydown 리스너는
+    // clear(root)로 문서에서 떨어져 나가며 자연히 버려진다.
+    trapFocus(box);
     return box;
   }
 

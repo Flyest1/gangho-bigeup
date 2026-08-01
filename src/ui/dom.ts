@@ -68,3 +68,22 @@ export function trapFocus(container: HTMLElement): () => void {
     if (opener && opener.isConnected) opener.focus();
   };
 }
+
+/**
+ * 알림이 함께 쌓이는 자리. app.ts(격리·저장 실패 알림)와 platform/pwa.ts(새 판본·
+ * 오프라인 준비 배너)가 같은 화면 조각을 나눠 쓴다 — 어느 쪽도 다른 쪽을 가리면
+ * 안 되므로, 둘 다 이 한 그릇에 쌓아 CSS가 세로로만 늘어놓게 한다(겹치지 않음).
+ * `document.getElementById`로 이미 있으면 그 자리를 그대로 돌려주고(멱등),
+ * 없으면 `parent` 밑에 새로 만든다. app.ts는 자신의 `root`를 parent로 넘겨
+ * (mountApp이 여러 번 따로 인스턴스화되는 테스트에서도) 알림이 그 root의
+ * 자손으로 남게 하고, pwa.ts는 인자 없이 불러 이미 만들어진 자리를 찾아 쓴다.
+ */
+export function noticeHost(parent: HTMLElement = document.body): HTMLElement {
+  const found = document.getElementById('notice-host');
+  if (found) return found;
+  const host = document.createElement('div');
+  host.id = 'notice-host';
+  host.className = 'notice-stack';
+  parent.append(host);
+  return host;
+}
