@@ -3994,7 +3994,7 @@ import { applyAction, startCombat, type CombatAction } from './combat';
 import type { ContentIndex } from './content';
 import { SCHOOLS } from './gamedata';
 import { generateMap, nodeAt, type GameMap, type NodeType } from './map';
-import { triggerRelics } from './relics';
+import { relicMods, triggerRelics } from './relics';
 import { Rng, seedFrom } from './rng';
 import type { CardInstance, CombatState, Rarity } from './types';
 
@@ -4046,6 +4046,18 @@ export type RunAction =
   | { type: 'leave' };
 
 const REST_HEAL_RATIO = 0.3;
+
+/**
+ * 기물 보정을 포함한 실제 최대 체력.
+ *
+ * `run.player.maxHp` 는 문파 기본값만 담고, 기물의 maxHp 보정은 `startCombat` 이
+ * 전투를 시작할 때마다 더한다. 그래서 전투 밖에서 `run.player.maxHp` 를 그대로 쓰면
+ * 근골(+8)을 든 채로 88/80 같은 상태가 되고, 객잔에서 쉬면 회복은커녕 80으로 깎인다.
+ * 전투 밖의 모든 계산과 화면 표시는 이 함수를 거쳐야 한다.
+ */
+export function effectiveMaxHp(run: RunState, content: ContentIndex): number {
+  return run.player.maxHp + relicMods(run.player.relics, content).maxHp;
+}
 
 export function startRun(seedText: string, content: ContentIndex): RunState {
   const school = SCHOOLS.gaebang;
@@ -4261,10 +4273,11 @@ export function applyRunAction(
     case 'rest': {
       if (run.screen !== 'rest') return run;
       if (action.choice === 'heal') {
-        const heal = Math.floor(run.player.maxHp * REST_HEAL_RATIO);
+        const cap = effectiveMaxHp(run, content);
+        const heal = Math.floor(cap * REST_HEAL_RATIO);
         return {
           ...run, screen: 'map',
-          player: { ...run.player, hp: Math.min(run.player.maxHp, run.player.hp + heal) },
+          player: { ...run.player, hp: Math.min(cap, run.player.hp + heal) },
         };
       }
       const card = run.player.deck.find((c) => c.uid === action.uid);
