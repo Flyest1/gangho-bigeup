@@ -1812,7 +1812,7 @@ export function applyEffects(
 - [ ] **Step 5: 테스트가 통과하는지 확인**
 
 Run: `npx vitest run tests/engine/effects.test.ts && npm run typecheck`
-Expected: PASS — 21 tests, 타입 에러 없음
+Expected: PASS — 22 tests, 타입 에러 없음
 
 - [ ] **Step 6: 커밋**
 
