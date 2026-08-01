@@ -1,7 +1,7 @@
 import { CONTENT } from '../src/engine/gamedata';
 import { applyRunAction, availableNodes, startRun, type RunState } from '../src/engine/run';
 import { canPlay, effectiveCard } from '../src/engine/combat';
-import { Rng } from '../src/engine/rng';
+import { Rng, seedFrom } from '../src/engine/rng';
 
 const RUNS = Number(process.argv[2] ?? 300);
 
@@ -25,7 +25,9 @@ function playCombat(run: RunState, rng: Rng): RunState {
 }
 
 function playRun(seedText: string): RunState {
-  const rng = new Rng(seedText.length * 7919 + 13);
+  // 시드 문자열 전체를 해싱한다. 길이만 쓰면 `시드0`..`시드999` 가 길이 3·4·5
+  // 세 가지 상태로 뭉쳐, 1000회 중 900여 회가 같은 결정 스트림을 공유한다.
+  const rng = new Rng(seedFrom(`ai:${seedText}`));
   let s = startRun(seedText, CONTENT);
 
   for (let guard = 0; guard < 500 && s.result === 'ongoing'; guard++) {

@@ -65,11 +65,11 @@ const SEED_SYLLABLES = ['강', '호', '무', '림', '검', '도', '풍', '운', 
 
 // 이 파일에서 Math.random 을 쓰는 유일한 지점이다. 런의 시작 시드를 뽑는 곳이며,
 // 이후 게임의 모든 난수는 이 시드에서 파생되므로 런 자체는 여전히 재현 가능하다.
-// tools/check_engine_purity.mjs 가 rng.ts 의 이 호출만 화이트리스트로 허용한다.
+// tools/check_engine_purity.mjs 가 아래 줄의 purity-allow 표식만 허용한다 (파일 전체가 아니다).
 export function randomSeedText(): string {
   let out = '';
   for (let i = 0; i < 4; i++) {
-    out += SEED_SYLLABLES[Math.floor(Math.random() * SEED_SYLLABLES.length)];
+    out += SEED_SYLLABLES[Math.floor(Math.random() * SEED_SYLLABLES.length)]; // purity-allow: 런 시작 시드
   }
   return `${out}-${Date.now().toString(36).slice(-4)}`;
 }

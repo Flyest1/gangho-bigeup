@@ -10,22 +10,42 @@ const BANNED = [
   { re: /\bnavigator\b/, why: 'navigator 참조' },
   { re: /Math\.random\s*\(/, why: 'Math.random 직접 호출' },
 ];
-// randomSeedText 는 런 시드를 뽑는 유일한 지점이라 허용한다.
-const ALLOW = new Map([['rng.ts', /Math\.random\s*\(/]]);
+/**
+ * 예외는 줄 단위 표식으로만 낸다. 파일 단위로 규칙을 끄면 같은 파일에 두 번째
+ * 위반이 들어와도 조용히 통과한다. 표식 총 개수도 아래에서 못박는다.
+ */
+const ALLOW_MARK = 'purity-allow';
+const ALLOW_LIMIT = 1;
+
+/**
+ * 주석을 지운 사본을 만든다. 줄 번호를 유지해야 하므로 블록 주석은 공백으로 덮는다.
+ * 앞서 `*` 로 시작하는 줄을 통째로 건너뛰던 방식은 여러 줄에 걸친 곱셈식
+ * (`base` 다음 줄이 `* window.innerWidth`) 을 주석으로 오인해 실제 위반을 놓쳤다.
+ */
+function stripComments(src) {
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+}
 
 const problems = [];
+let allowCount = 0;
+
 for (const name of readdirSync(ENGINE)) {
   if (!name.endsWith('.ts')) continue;
-  const source = readFileSync(join(ENGINE, name), 'utf8');
-  source.split('\n').forEach((line, i) => {
-    if (line.trim().startsWith('//') || line.trim().startsWith('*')) return;
+  const raw = readFileSync(join(ENGINE, name), 'utf8');
+  const rawLines = raw.split('\n');
+  stripComments(raw).split('\n').forEach((line, i) => {
     for (const { re, why } of BANNED) {
       if (!re.test(line)) continue;
-      const allowed = ALLOW.get(name);
-      if (allowed && allowed.source === re.source) continue;
+      if (rawLines[i]?.includes(ALLOW_MARK)) { allowCount++; continue; }
       problems.push(`src/engine/${name}:${i + 1} — ${why}`);
     }
   });
+}
+
+if (allowCount > ALLOW_LIMIT) {
+  problems.push(`${ALLOW_MARK} 표식이 ${allowCount}개다. 허용치는 ${ALLOW_LIMIT}개뿐이다`);
 }
 
 if (problems.length) {
