@@ -120,8 +120,23 @@ function applyEnemyEffects(
           s = { ...s, player: { ...s.player, status: addStatus(s.player.status, atom.status, atom.value) } };
         }
         break;
-      default:
+      // 아래 원자들은 적 행동에서 의미가 없거나 지원하지 않는다. 목록을 명시해 두면
+      // 새 원자를 추가할 때 여기서 컴파일이 깨지므로 조용히 무시되는 일이 없다.
+      // `tools/validate_data.mjs`(Task 10)가 적 행동 데이터에서 이 목록을 거부한다.
+      case 'draw':
+      case 'gainQi':
+      case 'keepBlock':
+      case 'loseBlock':
+      case 'ifCombo':
+      case 'ifBreak':
+      case 'counterStance':
         break;
+
+      default: {
+        const unreachable: never = atom;
+        void unreachable;
+        break;
+      }
     }
   }
 
@@ -130,7 +145,16 @@ function applyEnemyEffects(
 
 function runEnemyTurn(state: CombatState, content: ContentIndex): CombatState {
   let s: CombatState = { ...state, phase: 'enemy' };
-  const rng = new Rng(s.rngState);
+
+  // 난수는 항상 s.rngState 에서 읽어 s 로 되돌린다. 국소 Rng 를 턴 내내 쥐고 있다가
+  // 마지막에 한 번 써 넣으면, 그 사이에 s.rngState 를 전진시킨 다른 코드(효과 원자,
+  // 나중에 붙을 기물 훅)의 진행이 통째로 지워져 재현이 어긋난다.
+  const consume = <T>(fn: (rng: Rng) => T): T => {
+    const rng = new Rng(s.rngState);
+    const out = fn(rng);
+    s = { ...s, rngState: rng.state };
+    return out;
+  };
 
   for (const snapshot of s.enemies) {
     const current = s.enemies.find((e) => e.uid === snapshot.uid);
@@ -147,7 +171,7 @@ function runEnemyTurn(state: CombatState, content: ContentIndex): CombatState {
     if (self.hp <= 0) continue;
 
     const def: EnemyDef = content.enemy(self.defId);
-    const intent = self.intent ?? chooseIntent(def, self, rng);
+    const intent = self.intent ?? consume((rng) => chooseIntent(def, self, rng));
     const action = findAction(def, intent.actionId);
     if (action) {
       s = applyEnemyEffects(s, action.effects, self.uid, action.line);
@@ -166,12 +190,12 @@ function runEnemyTurn(state: CombatState, content: ContentIndex): CombatState {
 
     const alive = s.enemies.find((e) => e.uid === self.uid);
     if (alive && alive.hp > 0) {
-      const nextIntent = chooseIntent(def, alive, rng);
+      const nextIntent = consume((rng) => chooseIntent(def, alive, rng));
       s = { ...s, enemies: s.enemies.map((e) => (e.uid === alive.uid ? { ...e, intent: nextIntent } : e)) };
     }
   }
 
-  return { ...s, rngState: rng.state };
+  return s;
 }
 
 /** 죽은 적을 치우고 승패를 판정한다. */

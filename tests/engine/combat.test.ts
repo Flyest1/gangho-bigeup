@@ -23,7 +23,7 @@ const ENEMIES: EnemyDef[] = [
       { id: 'poke', kind: 'attack', line: 'gyeong', label: '찌르기', weight: 1, value: 5,
         effects: [{ op: 'damage', value: 5 }], maxInARow: 99 },
     ] },
-  { id: 'turtle', name: '철갑귀', hanja: '龜', hp: [40, 40], startStance: 'nae',
+  { id: 'turtle', name: '철갑귀', hanja: '龜', hp: [40, 40], startStance: 'wai',
     tier: 'normal', act: 1,
     actions: [
       { id: 'guard', kind: 'defend', line: 'nae', label: '움츠리기', weight: 1, value: 8,
@@ -202,6 +202,33 @@ describe('승패', () => {
     let s = startCombat(setup(), content);
     s = { ...s, phase: 'won' };
     expect(applyAction(s, { type: 'endTurn' }, content)).toBe(s);
+  });
+});
+
+describe('불변성과 재현성', () => {
+  it('applyAction은 입력 상태를 변경하지 않는다', () => {
+    const s = startCombat(setup(), content);
+    const snapshot = structuredClone(s);
+
+    applyAction(s, { type: 'playCard', uid: handUidOf(s, 'byeokta'), targetUid: 'e0' }, content);
+    expect(s).toEqual(snapshot);
+
+    applyAction(s, { type: 'endTurn' }, content);
+    expect(s).toEqual(snapshot);
+  });
+
+  it('같은 시드로 카드 발동과 턴 종료를 3턴 재생하면 두 번 다 같은 상태가 나온다', () => {
+    function play(): CombatState {
+      let s = startCombat(setup(), content);
+      s = applyAction(s, { type: 'playCard', uid: s.hand[0]!.uid, targetUid: 'e0' }, content);
+      s = applyAction(s, { type: 'endTurn' }, content);
+      s = applyAction(s, { type: 'playCard', uid: s.hand[0]!.uid, targetUid: 'e0' }, content);
+      s = applyAction(s, { type: 'endTurn' }, content);
+      s = applyAction(s, { type: 'endTurn' }, content);
+      return s;
+    }
+
+    expect(play()).toEqual(play());
   });
 });
 
