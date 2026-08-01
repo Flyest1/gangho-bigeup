@@ -16,6 +16,7 @@ const RELICS: RelicDef[] = [
     triggers: [{ hook: 'onCombatStart', effects: [{ op: 'applyStatus', status: 'momentum', value: 2, target: 'self' }] }] },
   { id: 'horibyeong', name: '취선의 호리병', hanja: '瓢', rarity: 'common', text: '첫 턴에 내공 +2',
     triggers: [{ hook: 'onTurnStart', onlyTurn: 1, effects: [{ op: 'gainQi', value: 2 }] }] },
+  { id: 'jumeoni', name: '넉넉한 주머니', hanja: '囊', rarity: 'common', text: '손패 +1', mods: { handSize: 1 } },
 ];
 
 const CARDS: CardDef[] = [
@@ -79,6 +80,11 @@ describe('전투 통합', () => {
     expect(s.player.qi).toBe(3);
   });
 
+  it('handSize 보정이 첫 손패 매수를 늘린다', () => {
+    const s = startCombat(setup(['jumeoni']), content);
+    expect(s.hand).toHaveLength(6);
+  });
+
   it('comboThreshold 보정이 연계 발동 시점을 앞당긴다', () => {
     let s = startCombat(setup(['bongkyeol']), content);
     const hp0 = s.enemies[0]!.hp;
@@ -97,8 +103,13 @@ describe('comboFires 임계값 인자', () => {
   it('임계값을 낮출 수 있다', () => {
     expect(comboFires({ line: 'wai', count: 2 }, 2)).toBe(true);
   });
-  it('임계값은 1 아래로 내려가지 않는다', () => {
-    expect(comboFires({ line: null, count: 9 }, 0)).toBe(false);
+  // 참고: updateCombo는 line이 null이 아닌 한 count가 항상 1 이상이도록 보장하므로,
+  // 아래 count: 0 입력은 정상 플레이에서는 나올 수 없다. 그래도 Math.max(1, threshold)
+  // 클램프 자체를 직접 검증하려면 이렇게 인위적인 입력이 필요하다 — 클램프가 없다면
+  // count(0) >= threshold(0)이 참이 되어 true가 반환됐을 것이다. 즉 이 클램프는
+  // 방어적 코드일 뿐 실제 플레이 경로로는 도달하지 않는다는 사실을 여기 남겨 둔다.
+  it('임계값은 1 아래로 내려가지 않는다 (클램프 자체를 검증)', () => {
+    expect(comboFires({ line: 'wai', count: 0 }, 0)).toBe(false);
   });
 });
 

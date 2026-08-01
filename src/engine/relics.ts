@@ -3,7 +3,7 @@ import type { ContentIndex } from './content';
 import { applyEffects } from './effects';
 import type { CombatState, EffectAtom, Rarity } from './types';
 
-export type RelicHook = 'onCombatStart' | 'onTurnStart' | 'onKill' | 'onCombatEnd';
+export type RelicHook = 'onCombatStart' | 'onTurnStart' | 'onCombatEnd';
 
 export interface RelicMods {
   maxHp: number;

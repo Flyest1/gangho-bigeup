@@ -29,7 +29,7 @@ export type IntentKind = 'attack' | 'defend' | 'debuff' | 'buff' | 'special';
 export type CombatPhase = 'player' | 'enemy' | 'won' | 'lost';
 
 export type EffectAtom =
-  | { op: 'damage'; value: number; hits?: number; target?: EffectTarget }
+  | { op: 'damage'; value: number; hits?: number; target?: 'enemy' | 'allEnemies' }
   | { op: 'block'; value: number }
   | { op: 'draw'; value: number }
   | { op: 'gainQi'; value: number }
