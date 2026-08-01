@@ -87,7 +87,11 @@ describe('간선', () => {
 
 describe('타입 분포', () => {
   it('같은 타입이 한 경로에서 3연속 나오지 않는다', () => {
-    for (const s of SEEDS) {
+    // 이 성질은 시드 수십 개로 확인되지 않는다. 초기 구현이 4층 객잔 고정을
+    // 고려하지 않아 약 2.2%의 시드에서 객잔 3연속이 나왔는데, 고정 시드 60개는
+    // 전부 비껴갔다. 넓게 쓸어야 실제로 무는 테스트가 된다.
+    const wide = Array.from({ length: 3000 }, (_, i) => `삼연속${i}`);
+    for (const s of wide) {
       const m = build(s);
       const walk = (id: string, trail: string[]): void => {
         const n = nodeAt(m, id);

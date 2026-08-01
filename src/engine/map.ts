@@ -28,16 +28,24 @@ export function nodeAt(map: GameMap, id: string): MapNode {
   return node;
 }
 
-/** 이 노드에 이 타입을 두면 어떤 부모 경로에서든 3연속이 되는가. */
+/** 이 노드에 이 타입을 두면 어떤 경로에서든 3연속이 되는가. */
 function wouldTriple(
   type: NodeType, layer: number, parents: MapNode[], nodes: Record<string, MapNode>,
 ): boolean {
-  if (layer < 2) return false;
-  for (const parent of parents) {
-    if (parent.type !== type) continue;
-    const grandparents = Object.values(nodes).filter((n) => n.next.includes(parent.id));
-    if (grandparents.some((g) => g.type === type)) return true;
+  // 뒤를 본다. 부모와 조부모가 모두 같은 타입이면 이 노드가 3연속을 완성한다.
+  if (layer >= 2) {
+    for (const parent of parents) {
+      if (parent.type !== type) continue;
+      const grandparents = Object.values(nodes).filter((n) => n.next.includes(parent.id));
+      if (grandparents.some((g) => g.type === type)) return true;
+    }
   }
+
+  // 앞도 봐야 한다. 4층은 항상 객잔으로 고정되어 있으므로, 3층을 객잔으로 두면
+  // 부모(2층)가 객잔일 때 2-3-4층이 객잔 3연속이 된다. 뒤만 보는 검사로는
+  // 이 경우를 놓치며, 실제로 약 2.2%의 시드에서 발생했다.
+  if (layer === 3 && type === 'rest' && parents.some((p) => p.type === 'rest')) return true;
+
   return false;
 }
 
