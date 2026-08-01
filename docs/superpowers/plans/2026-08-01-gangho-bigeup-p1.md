@@ -871,7 +871,7 @@ export const LINE_LABEL: Record<Line, { name: string; hanja: string; shape: stri
 - [ ] **Step 5: 테스트가 통과하는지 확인**
 
 Run: `npx vitest run tests/engine/stance.test.ts`
-Expected: PASS — 17 tests
+Expected: PASS — 18 tests
 
 - [ ] **Step 6: 커밋**
 
@@ -1317,7 +1317,7 @@ export function computeDamage(ctx: DamageContext): DamageResult {
 - [ ] **Step 4: 테스트가 통과하는지 확인**
 
 Run: `npx vitest run tests/engine/damage.test.ts`
-Expected: PASS — 17 tests
+Expected: PASS — 18 tests
 
 - [ ] **Step 5: 커밋**
 
