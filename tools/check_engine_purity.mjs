@@ -18,36 +18,47 @@ const ALLOW_MARK = 'purity-allow';
 const ALLOW_LIMIT = 1;
 
 /**
- * 한 줄에서 주석 부분만 잘라낸다. 문자열 안의 `//` 는 건드리지 않는다.
- * 정규식으로 `//` 뒤를 통째로 버리면 `"a//b" + window.location` 같은 줄에서
- * 실제 위반이 주석으로 오인돼 통째로 사라진다. 가드가 열린 채 실패하는 셈이다.
- */
-function stripLineComment(line) {
-  let quote = null;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (quote) {
-      if (c === '\\') { i++; continue; }
-      if (c === quote) quote = null;
-      continue;
-    }
-    if (c === '"' || c === "'" || c === '`') { quote = c; continue; }
-    if (c === '/' && line[i + 1] === '/') return line.slice(0, i);
-  }
-  return line;
-}
-
-/**
- * 주석을 지운 사본을 만든다. 줄 번호를 유지해야 하므로 블록 주석은 공백으로 덮는다.
- * 앞서 `*` 로 시작하는 줄을 통째로 건너뛰던 방식은 여러 줄에 걸친 곱셈식
- * (`base` 다음 줄이 `* window.innerWidth`) 을 주석으로 오인해 실제 위반을 놓쳤다.
+ * 소스에서 주석만 지운다. 문자열·템플릿 리터럴 안의 `//` 와 `/*` 는 건드리지 않고,
+ * 템플릿 리터럴은 여러 줄에 걸치므로 상태를 줄 경계 너머로 이어간다. 줄 번호를
+ * 유지해야 하므로 지운 자리는 같은 길이의 공백으로 채우고 개행만 남긴다.
+ *
+ * 정규식으로도, 줄 단위 스캔으로도 이 일은 되지 않는다. 둘 다 시도했고 둘 다
+ * 실제 위반을 주석으로 오인해 삼켰다 — 가드가 위반을 못 보는 방향으로 실패한다.
+ * 알려진 한계: 정규식 리터럴 안의 `//` 는 여전히 주석으로 읽힌다. 현재 엔진에는
+ * 정규식 리터럴이 없다.
  */
 function stripComments(src) {
-  return src
-    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
-    .split('\n')
-    .map(stripLineComment)
-    .join('\n');
+  let out = '';
+  let mode = 'code'; // 'code' | 'line' | 'block' | 'quote'
+  let quote = null;
+
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    const next = src[i + 1];
+
+    if (mode === 'line') {
+      if (c === '\n') { out += '\n'; mode = 'code'; } else out += ' ';
+      continue;
+    }
+    if (mode === 'block') {
+      if (c === '*' && next === '/') { out += '  '; i++; mode = 'code'; }
+      else out += c === '\n' ? '\n' : ' ';
+      continue;
+    }
+    if (mode === 'quote') {
+      out += c;
+      if (c === '\\' && next !== undefined) { out += next; i++; continue; }
+      if (c === quote) { mode = 'code'; quote = null; }
+      continue;
+    }
+
+    if (c === '/' && next === '/') { out += '  '; i++; mode = 'line'; continue; }
+    if (c === '/' && next === '*') { out += '  '; i++; mode = 'block'; continue; }
+    if (c === '"' || c === "'" || c === '`') { out += c; mode = 'quote'; quote = c; continue; }
+    out += c;
+  }
+
+  return out;
 }
 
 const problems = [];
