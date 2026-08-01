@@ -2,6 +2,7 @@
 import type { ContentIndex } from './content';
 import { applyEffects, comboBonusFor, damagePlayer, drawCards } from './effects';
 import { chooseIntent, findAction, spawnEnemy, type EnemyDef } from './enemies';
+import { relicMods, triggerRelics } from './relics';
 import { Rng } from './rng';
 import { comboFires, nextStance, updateCombo } from './stance';
 import { addStatus, consumeStatus, getStatus, tickStatus } from './status';
@@ -41,16 +42,20 @@ export function startCombat(setup: CombatSetup, content: ContentIndex): CombatSt
 
   const draw = rng.shuffle(setup.deck);
 
+  const mods = relicMods(setup.player.relics, content);
+  const maxHp = setup.player.maxHp + mods.maxHp;
+  const maxQi = setup.player.maxQi + mods.maxQi;
+
   const state: CombatState = {
     rngState: rng.state,
     turn: 0,
     phase: 'player',
     player: {
-      hp: setup.player.hp,
-      maxHp: setup.player.maxHp,
+      hp: Math.min(setup.player.hp, maxHp),
+      maxHp,
       qi: 0,
-      maxQi: setup.player.maxQi,
-      block: 0,
+      maxQi,
+      block: mods.startBlock,
       stance: setup.player.stance,
       status: {},
       relics: [...setup.player.relics],
@@ -61,18 +66,20 @@ export function startCombat(setup: CombatSetup, content: ContentIndex): CombatSt
     discard: [],
     exhaust: [],
     combo: { line: null, count: 0 },
-    handSize: setup.handSize ?? 5,
+    handSize: (setup.handSize ?? 5) + mods.handSize,
     keepBlock: false,
     log: [],
   };
 
-  return beginPlayerTurn(state);
+  const seeded = triggerRelics(state, 'onCombatStart', content);
+  return beginPlayerTurn(seeded, content);
 }
 
-function beginPlayerTurn(state: CombatState): CombatState {
+function beginPlayerTurn(state: CombatState, content: ContentIndex): CombatState {
   let s: CombatState = { ...state, turn: state.turn + 1, phase: 'player' };
+  const mods = relicMods(s.player.relics, content);
 
-  if (!s.keepBlock) s = { ...s, player: { ...s.player, block: 0 } };
+  if (!s.keepBlock) s = { ...s, player: { ...s.player, block: mods.startBlock } };
   s = { ...s, keepBlock: false };
 
   const poison = getStatus(s.player.status, 'poison');
@@ -86,6 +93,7 @@ function beginPlayerTurn(state: CombatState): CombatState {
   if (naesang > 0) status = consumeStatus(status, 'naesang', naesang);
 
   s = { ...s, player: { ...s.player, qi, status } };
+  s = triggerRelics(s, 'onTurnStart', content);
   s = drawCards(s, s.handSize);
   return settle(s);
 }
@@ -225,7 +233,7 @@ export function applyAction(
     s = runEnemyTurn(s, content);
     s = settle(s);
     if (s.phase === 'won' || s.phase === 'lost') return s;
-    return beginPlayerTurn(s);
+    return beginPlayerTurn(s, content);
   }
 
   if (!canPlay(state, action.uid, content)) return state;
@@ -233,8 +241,9 @@ export function applyAction(
   const card = state.hand.find((c) => c.uid === action.uid)!;
   const def = effectiveCard(content.card(card.defId), card.upgraded);
 
+  const mods = relicMods(state.player.relics, content);
   const combo = updateCombo(state.combo, def.line);
-  const fires = comboFires(combo);
+  const fires = comboFires(combo, 3 + mods.comboThreshold);
   const bonus = fires && combo.line ? comboBonusFor(combo.line) : { damageBonus: 0, extra: [] };
 
   let s: CombatState = {

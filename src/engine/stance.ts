@@ -37,8 +37,8 @@ export function updateCombo(combo: Combo, line: Line): Combo {
   return { line, count: 1 };
 }
 
-export function comboFires(combo: Combo): boolean {
-  return combo.line !== null && combo.count >= COMBO_THRESHOLD;
+export function comboFires(combo: Combo, threshold: number = COMBO_THRESHOLD): boolean {
+  return combo.line !== null && combo.count >= Math.max(1, threshold);
 }
 
 /** 색만으로 구분하지 않도록 이름·한자·도형을 함께 제공한다. */

@@ -31,7 +31,7 @@ const ENEMIES: EnemyDef[] = [
     ] },
 ];
 
-const content = makeContentIndex({ cards: CARDS, enemies: ENEMIES });
+const content = makeContentIndex({ cards: CARDS, enemies: ENEMIES, relics: [] });
 
 function deck(...ids: string[]): CardInstance[] {
   return ids.map((defId, i) => ({ uid: `u${i}`, defId, upgraded: false }));
