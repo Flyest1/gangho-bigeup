@@ -1,0 +1,293 @@
+[
+  {
+    "id": "deulgae", "name": "들개", "hanja": "野犬",
+    "hp": [16, 20], "startStance": "gyeong", "tier": "normal", "act": 1,
+    "actions": [
+      {
+        "id": "mul", "kind": "attack", "line": "gyeong", "label": "물어뜯기", "weight": 3, "value": 6,
+        "effects": [{ "op": "damage", "value": 6 }]
+      },
+      {
+        "id": "uleum", "kind": "buff", "line": "sul", "label": "울부짖기", "weight": 1, "value": 1,
+        "effects": [{ "op": "applyStatus", "status": "momentum", "value": 1, "target": "self" }]
+      }
+    ]
+  },
+  {
+    "id": "sanjeok", "name": "산적", "hanja": "山賊",
+    "hp": [22, 26], "startStance": "wai", "tier": "normal", "act": 1,
+    "actions": [
+      {
+        "id": "hwidu", "kind": "attack", "line": "wai", "label": "휘두르기", "weight": 3, "value": 8,
+        "effects": [{ "op": "damage", "value": 8 }]
+      },
+      {
+        "id": "gama", "kind": "defend", "line": "nae", "label": "웅크리기", "weight": 2, "value": 6,
+        "effects": [{ "op": "block", "value": 6 }]
+      }
+    ]
+  },
+  {
+    "id": "geolbang_baesin", "name": "배신한 걸개", "hanja": "背信丐",
+    "hp": [18, 22], "startStance": "wai", "tier": "normal", "act": 1,
+    "actions": [
+      {
+        "id": "chigi", "kind": "attack", "line": "wai", "label": "후려치기", "weight": 2, "value": 7,
+        "effects": [{ "op": "damage", "value": 7 }]
+      },
+      {
+        "id": "jeomhyeol", "kind": "attack", "line": "gyeong", "label": "혈도 짚기", "weight": 2, "value": 4,
+        "effects": [{ "op": "damage", "value": 4 }, { "op": "applyStatus", "status": "weak", "value": 1 }]
+      }
+    ]
+  },
+  {
+    "id": "dokchung", "name": "독충 무리", "hanja": "毒蟲",
+    "hp": [14, 18], "startStance": "gyeong", "tier": "normal", "act": 1,
+    "actions": [
+      {
+        "id": "mulgi", "kind": "attack", "line": "gyeong", "label": "떼로 물기", "weight": 2, "value": 3, "hits": 2,
+        "effects": [{ "op": "damage", "value": 3, "hits": 2 }]
+      },
+      {
+        "id": "dok", "kind": "debuff", "line": "sul", "label": "독무 뿜기", "weight": 2, "value": 3,
+        "effects": [{ "op": "applyStatus", "status": "poison", "value": 3 }]
+      }
+    ]
+  },
+  {
+    "id": "heukpung_jol", "name": "흑풍채 졸개", "hanja": "黑風卒",
+    "hp": [40, 46], "startStance": "wai", "tier": "elite", "act": 1,
+    "actions": [
+      {
+        "id": "gwangpa", "kind": "attack", "line": "wai", "label": "광풍 베기", "weight": 3, "value": 11,
+        "effects": [{ "op": "damage", "value": 11 }]
+      },
+      {
+        "id": "jinyeol", "kind": "defend", "line": "nae", "label": "진열 정비", "weight": 2, "value": 10,
+        "effects": [
+          { "op": "block", "value": 10 },
+          { "op": "applyStatus", "status": "momentum", "value": 1, "target": "self" }
+        ]
+      },
+      {
+        "id": "dolgyeok", "kind": "attack", "line": "gyeong", "label": "돌격", "weight": 1, "value": 6, "hits": 2,
+        "effects": [{ "op": "damage", "value": 6, "hits": 2 }]
+      }
+    ]
+  },
+  {
+    "id": "jeonjin_doin", "name": "전진교 도인", "hanja": "全眞道人",
+    "hp": [26, 30], "startStance": "nae", "tier": "normal", "act": 2,
+    "actions": [
+      {
+        "id": "geomgi", "kind": "attack", "line": "nae", "label": "검기 발출", "weight": 3, "value": 10,
+        "effects": [{ "op": "damage", "value": 10 }]
+      },
+      {
+        "id": "unsin", "kind": "defend", "line": "nae", "label": "운신법", "weight": 2, "value": 9,
+        "effects": [{ "op": "block", "value": 9 }]
+      }
+    ]
+  },
+  {
+    "id": "dohwado_haksa", "name": "도화도 학사", "hanja": "桃花學士",
+    "hp": [24, 28], "startStance": "gyeong", "tier": "normal", "act": 2,
+    "actions": [
+      {
+        "id": "pungbo", "kind": "attack", "line": "gyeong", "label": "풍보 밟기", "weight": 3, "value": 7, "hits": 2,
+        "effects": [{ "op": "damage", "value": 7, "hits": 2 }]
+      },
+      {
+        "id": "hyeonhok", "kind": "debuff", "line": "sul", "label": "현혹술", "weight": 2, "value": 2,
+        "effects": [{ "op": "applyStatus", "status": "weak", "value": 2 }]
+      }
+    ]
+  },
+  {
+    "id": "geumgun_wibyeong", "name": "금군 위병", "hanja": "禁軍衛兵",
+    "hp": [30, 34], "startStance": "wai", "tier": "normal", "act": 2,
+    "actions": [
+      {
+        "id": "changjil", "kind": "attack", "line": "wai", "label": "창질", "weight": 3, "value": 13,
+        "effects": [{ "op": "damage", "value": 13 }]
+      },
+      {
+        "id": "bangjin", "kind": "defend", "line": "nae", "label": "방진 구축", "weight": 2, "value": 12,
+        "effects": [{ "op": "block", "value": 12 }]
+      }
+    ]
+  },
+  {
+    "id": "sasu_gaek", "name": "사수 자객", "hanja": "死手刺客",
+    "hp": [22, 26], "startStance": "gyeong", "tier": "normal", "act": 2,
+    "actions": [
+      {
+        "id": "amgi", "kind": "attack", "line": "gyeong", "label": "암기 투척", "weight": 3, "value": 5, "hits": 3,
+        "effects": [{ "op": "damage", "value": 5, "hits": 3 }]
+      },
+      {
+        "id": "dokdo", "kind": "debuff", "line": "sul", "label": "독도 긋기", "weight": 2, "value": 4,
+        "effects": [{ "op": "applyStatus", "status": "poison", "value": 4 }]
+      }
+    ]
+  },
+  {
+    "id": "jeonjin_jangno", "name": "전진 장로", "hanja": "全眞長老",
+    "hp": [58, 64], "startStance": "nae", "tier": "elite", "act": 2,
+    "actions": [
+      {
+        "id": "ilyanggong", "kind": "attack", "line": "nae", "label": "일양공 운기", "weight": 3, "value": 16,
+        "effects": [{ "op": "damage", "value": 16 }]
+      },
+      {
+        "id": "gyeoljin", "kind": "defend", "line": "nae", "label": "결진", "weight": 2, "value": 14,
+        "effects": [
+          { "op": "block", "value": 14 },
+          { "op": "applyStatus", "status": "momentum", "value": 2, "target": "self" }
+        ]
+      },
+      {
+        "id": "pasa", "kind": "attack", "line": "wai", "label": "파사장", "weight": 2, "value": 9,
+        "effects": [{ "op": "damage", "value": 9 }, { "op": "applyStatus", "status": "naesang", "value": 2 }]
+      }
+    ]
+  },
+  {
+    "id": "hwasan_geomgaek", "name": "화산 검객", "hanja": "華山劍客",
+    "hp": [34, 38], "startStance": "wai", "tier": "normal", "act": 3,
+    "actions": [
+      {
+        "id": "maehwa", "kind": "attack", "line": "wai", "label": "매화검 베기", "weight": 3, "value": 15,
+        "effects": [{ "op": "damage", "value": 15 }]
+      },
+      {
+        "id": "geommak", "kind": "defend", "line": "nae", "label": "검막 두르기", "weight": 2, "value": 12,
+        "effects": [{ "op": "block", "value": 12 }]
+      }
+    ]
+  },
+  {
+    "id": "myeonggyo_haenja", "name": "명교 행자", "hanja": "明敎行者",
+    "hp": [32, 36], "startStance": "nae", "tier": "normal", "act": 3,
+    "actions": [
+      {
+        "id": "yeolhwa", "kind": "attack", "line": "nae", "label": "열화신공 발출", "weight": 3, "value": 13,
+        "effects": [{ "op": "damage", "value": 13 }, { "op": "applyStatus", "status": "poison", "value": 2 }]
+      },
+      {
+        "id": "hoche", "kind": "defend", "line": "nae", "label": "호체신공", "weight": 2, "value": 11,
+        "effects": [{ "op": "block", "value": 11 }]
+      }
+    ]
+  },
+  {
+    "id": "seosang_musa", "name": "서역 무사", "hanja": "西域武士",
+    "hp": [36, 40], "startStance": "gyeong", "tier": "normal", "act": 3,
+    "actions": [
+      {
+        "id": "yeonhwan", "kind": "attack", "line": "gyeong", "label": "연환첨", "weight": 3, "value": 7, "hits": 3,
+        "effects": [{ "op": "damage", "value": 7, "hits": 3 }]
+      },
+      {
+        "id": "doyak", "kind": "buff", "line": "sul", "label": "도약 준비", "weight": 2, "value": 2,
+        "effects": [{ "op": "applyStatus", "status": "momentum", "value": 2, "target": "self" }]
+      }
+    ]
+  },
+  {
+    "id": "gollyun_geomsa", "name": "곤륜 검사", "hanja": "崑崙劍士",
+    "hp": [30, 34], "startStance": "gyeong", "tier": "normal", "act": 3,
+    "actions": [
+      {
+        "id": "sokgeom", "kind": "attack", "line": "gyeong", "label": "속검", "weight": 3, "value": 8, "hits": 2,
+        "effects": [{ "op": "damage", "value": 8, "hits": 2 }]
+      },
+      {
+        "id": "hansol", "kind": "defend", "line": "nae", "label": "한기 두르기", "weight": 2, "value": 13,
+        "effects": [{ "op": "block", "value": 13 }]
+      }
+    ]
+  },
+  {
+    "id": "sorim_bulgye", "name": "소림 계율승", "hanja": "少林戒律僧",
+    "hp": [72, 80], "startStance": "nae", "tier": "elite", "act": 3,
+    "actions": [
+      {
+        "id": "geumgang", "kind": "attack", "line": "nae", "label": "금강복마", "weight": 3, "value": 19,
+        "effects": [{ "op": "damage", "value": 19 }]
+      },
+      {
+        "id": "budong", "kind": "defend", "line": "nae", "label": "부동심 방어", "weight": 2, "value": 20,
+        "effects": [{ "op": "block", "value": 20 }]
+      },
+      {
+        "id": "sajahu", "kind": "attack", "line": "wai", "label": "사자후", "weight": 2, "value": 12,
+        "effects": [{ "op": "damage", "value": 12 }, { "op": "applyStatus", "status": "vulnerable", "value": 2 }]
+      }
+    ]
+  },
+  {
+    "id": "maechopung", "name": "매초풍", "hanja": "梅超風",
+    "hp": [96, 96], "startStance": "gyeong", "tier": "boss", "act": 1,
+    "actions": [
+      {
+        "id": "gujeum", "kind": "attack", "line": "gyeong", "label": "백골조 연격", "weight": 3, "value": 9, "hits": 2,
+        "effects": [{ "op": "damage", "value": 9, "hits": 2 }]
+      },
+      {
+        "id": "baekgol", "kind": "attack", "line": "wai", "label": "백골조 가격", "weight": 2, "value": 17,
+        "effects": [{ "op": "damage", "value": 17 }, { "op": "applyStatus", "status": "vulnerable", "value": 2 }]
+      },
+      {
+        "id": "yeonmu", "kind": "buff", "line": "sul", "label": "흑풍 선회", "weight": 1, "value": 3,
+        "effects": [{ "op": "applyStatus", "status": "momentum", "value": 3, "target": "self" }]
+      }
+    ]
+  },
+  {
+    "id": "guchunin", "name": "구천인", "hanja": "九天人",
+    "hp": [132, 132], "startStance": "wai", "tier": "boss", "act": 2,
+    "actions": [
+      {
+        "id": "cheolgak", "kind": "attack", "line": "wai", "label": "철각 가격", "weight": 3, "value": 20,
+        "effects": [{ "op": "damage", "value": 20 }]
+      },
+      {
+        "id": "yeoncheol", "kind": "defend", "line": "nae", "label": "연철갑 두르기", "weight": 2, "value": 18,
+        "effects": [
+          { "op": "block", "value": 18 },
+          { "op": "applyStatus", "status": "momentum", "value": 2, "target": "self" }
+        ]
+      },
+      {
+        "id": "ssanggyeok", "kind": "attack", "line": "wai", "label": "쌍격", "weight": 2, "value": 11, "hits": 2,
+        "effects": [{ "op": "damage", "value": 11, "hits": 2 }]
+      }
+    ]
+  },
+  {
+    "id": "guyangbong", "name": "구양봉", "hanja": "歐陽鋒",
+    "hp": [178, 178], "startStance": "nae", "tier": "boss", "act": 3,
+    "actions": [
+      {
+        "id": "hamamgong", "kind": "attack", "line": "nae", "label": "합마공 발출", "weight": 3, "value": 24,
+        "effects": [{ "op": "damage", "value": 24 }]
+      },
+      {
+        "id": "sadok", "kind": "debuff", "line": "sul", "label": "사독 살포", "weight": 2, "value": 5,
+        "effects": [
+          { "op": "applyStatus", "status": "poison", "value": 5 },
+          { "op": "applyStatus", "status": "weak", "value": 2 }
+        ]
+      },
+      {
+        "id": "yeokhaeng", "kind": "attack", "line": "wai", "label": "역행 진기", "weight": 2, "value": 14, "hits": 2,
+        "effects": [
+          { "op": "damage", "value": 14, "hits": 2 },
+          { "op": "applyStatus", "status": "naesang", "value": 2 }
+        ]
+      }
+    ]
+  }
+]

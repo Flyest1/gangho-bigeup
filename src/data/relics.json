@@ -1,0 +1,145 @@
+[
+  {
+    "id": "geungol", "name": "근골", "hanja": "筋", "rarity": "common",
+    "text": "최대 체력 +8.",
+    "mods": { "maxHp": 8 }
+  },
+  {
+    "id": "gihaehyeol", "name": "기해혈", "hanja": "氣", "rarity": "rare",
+    "text": "최대 기 +1.",
+    "mods": { "maxQi": 1 }
+  },
+  {
+    "id": "gwansu", "name": "헐렁한 소매", "hanja": "袖", "rarity": "common",
+    "text": "손패 상한 +1.",
+    "mods": { "handSize": 1 }
+  },
+  {
+    "id": "jungnip", "name": "낡은 죽립", "hanja": "笠", "rarity": "common",
+    "text": "매 턴 시작 시 호신강기 5.",
+    "mods": { "startBlock": 5 }
+  },
+  {
+    "id": "horibyeong", "name": "취선의 호리병", "hanja": "瓢", "rarity": "common",
+    "text": "첫 턴 시작 시 기 2.",
+    "triggers": [{ "hook": "onTurnStart", "onlyTurn": 1, "effects": [{ "op": "gainQi", "value": 2 }] }]
+  },
+  {
+    "id": "banjjok_bigeup", "name": "반쪽 비급", "hanja": "笈", "rarity": "common",
+    "text": "전투 시작 시 자신 기세 2.",
+    "triggers": [
+      {
+        "hook": "onCombatStart",
+        "effects": [{ "op": "applyStatus", "status": "momentum", "value": 2, "target": "self" }]
+      }
+    ]
+  },
+  {
+    "id": "bangpyo", "name": "개방 표식", "hanja": "標", "rarity": "common",
+    "text": "전투 시작 시 카드 1장.",
+    "triggers": [{ "hook": "onCombatStart", "effects": [{ "op": "draw", "value": 1 }] }]
+  },
+  {
+    "id": "eunchim", "name": "은침 주머니", "hanja": "針", "rarity": "common",
+    "text": "전투 시작 시 적 전체 중독 3.",
+    "triggers": [
+      {
+        "hook": "onCombatStart",
+        "effects": [{ "op": "applyStatus", "status": "poison", "value": 3, "target": "allEnemies" }]
+      }
+    ]
+  },
+  {
+    "id": "cheoljang", "name": "무거운 철장", "hanja": "杖", "rarity": "rare",
+    "text": "최대 체력 −5. 전투 시작 시 자신 기세 3.",
+    "mods": { "maxHp": -5 },
+    "triggers": [
+      {
+        "hook": "onCombatStart",
+        "effects": [{ "op": "applyStatus", "status": "momentum", "value": 3, "target": "self" }]
+      }
+    ]
+  },
+  {
+    "id": "yukpo", "name": "마른 육포", "hanja": "脯", "rarity": "common",
+    "text": "전투 종료 시 체력 6 회복.",
+    "triggers": [{ "hook": "onCombatEnd", "effects": [{ "op": "heal", "value": 6 }] }]
+  },
+  {
+    "id": "okjeok", "name": "도화 옥적", "hanja": "笛", "rarity": "rare",
+    "text": "매 턴 시작 시 호신강기 3.",
+    "triggers": [{ "hook": "onTurnStart", "effects": [{ "op": "block", "value": 3 }] }]
+  },
+  {
+    "id": "heukpungjo", "name": "흑풍의 발톱", "hanja": "爪", "rarity": "rare",
+    "text": "전투 시작 시 적 전체 취약 1.",
+    "triggers": [
+      {
+        "hook": "onCombatStart",
+        "effects": [{ "op": "applyStatus", "status": "vulnerable", "value": 1, "target": "allEnemies" }]
+      }
+    ]
+  },
+  {
+    "id": "chohye", "name": "낡은 짚신", "hanja": "鞋", "rarity": "common",
+    "text": "첫 턴 시작 시 자신 잔상 1.",
+    "triggers": [
+      {
+        "hook": "onTurnStart",
+        "onlyTurn": 1,
+        "effects": [{ "op": "applyStatus", "status": "afterimage", "value": 1, "target": "self" }]
+      }
+    ]
+  },
+  {
+    "id": "guyang_janpyeon", "name": "구양신공 잔편", "hanja": "陽", "rarity": "rare",
+    "text": "매 턴 시작 시 체력 2 회복.",
+    "triggers": [{ "hook": "onTurnStart", "effects": [{ "op": "heal", "value": 2 }] }]
+  },
+  {
+    "id": "bonggyeol", "name": "죽봉 매듭", "hanja": "結", "rarity": "rare",
+    "text": "연계 발동 문턱 −1.",
+    "mods": { "comboThreshold": -1 }
+  },
+  {
+    "id": "mandok", "name": "만독불침 혈", "hanja": "毒", "rarity": "rare",
+    "text": "최대 체력 +15.",
+    "mods": { "maxHp": 15 }
+  },
+  {
+    "id": "dongpae", "name": "청동 노패", "hanja": "牌", "rarity": "common",
+    "text": "전투 시작 시 호신강기 8.",
+    "triggers": [{ "hook": "onCombatStart", "effects": [{ "op": "block", "value": 8 }] }]
+  },
+  {
+    "id": "hwasan_tae", "name": "화산 이끼", "hanja": "苔", "rarity": "common",
+    "text": "전투 종료 시 체력 10 회복.",
+    "triggers": [{ "hook": "onCombatEnd", "effects": [{ "op": "heal", "value": 10 }] }]
+  },
+  {
+    "id": "sabu_yupum", "name": "사부의 유품", "hanja": "遺", "rarity": "ultra",
+    "text": "전투 시작 시 카드 2장. 자신 기세 1.",
+    "triggers": [
+      {
+        "hook": "onCombatStart",
+        "effects": [
+          { "op": "draw", "value": 2 },
+          { "op": "applyStatus", "status": "momentum", "value": 1, "target": "self" }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "hangryong_yeohyang", "name": "항룡의 잔향", "hanja": "響", "rarity": "ultra",
+    "text": "매 턴 시작 시 호신강기 4. 자신 기세 1.",
+    "triggers": [
+      {
+        "hook": "onTurnStart",
+        "effects": [
+          { "op": "block", "value": 4 },
+          { "op": "applyStatus", "status": "momentum", "value": 1, "target": "self" }
+        ]
+      }
+    ]
+  }
+]

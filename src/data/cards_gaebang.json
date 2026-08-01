@@ -1,0 +1,480 @@
+[
+  {
+    "id": "hangryong_yuhoe", "name": "항룡유회", "hanja": "亢龍有悔", "school": "gaebang",
+    "line": "wai", "cost": 2, "rarity": "rare", "target": "enemy",
+    "text": "20 피해. 연계 3 이상이면 취약 2.",
+    "effects": [
+      { "op": "damage", "value": 20 },
+      { "op": "ifCombo", "min": 3, "then": [{ "op": "applyStatus", "status": "vulnerable", "value": 2 }] }
+    ],
+    "upgrade": {
+      "text": "27 피해. 연계 3 이상이면 취약 3.",
+      "effects": [
+        { "op": "damage", "value": 27 },
+        { "op": "ifCombo", "min": 3, "then": [{ "op": "applyStatus", "status": "vulnerable", "value": 3 }] }
+      ]
+    }
+  },
+  {
+    "id": "biryong_jaecheon", "name": "비룡재천", "hanja": "飛龍在天", "school": "gaebang",
+    "line": "wai", "cost": 2, "rarity": "rare", "target": "enemy",
+    "text": "16 피해. 연계 3 이상이면 10 피해 추가.",
+    "effects": [
+      { "op": "damage", "value": 16 },
+      { "op": "ifCombo", "min": 3, "then": [{ "op": "damage", "value": 10 }] }
+    ],
+    "upgrade": {
+      "text": "21 피해. 연계 3 이상이면 14 피해 추가.",
+      "effects": [
+        { "op": "damage", "value": 21 },
+        { "op": "ifCombo", "min": 3, "then": [{ "op": "damage", "value": 14 }] }
+      ]
+    }
+  },
+  {
+    "id": "jamryong_mulyong", "name": "잠룡물용", "hanja": "潛龍勿用", "school": "gaebang",
+    "line": "nae", "cost": 1, "rarity": "common", "target": "self",
+    "text": "호신강기 7. 연계 3 이상이면 호신강기 5 추가.",
+    "effects": [
+      { "op": "block", "value": 7 },
+      { "op": "ifCombo", "min": 3, "then": [{ "op": "block", "value": 5 }] }
+    ],
+    "upgrade": {
+      "text": "호신강기 10. 연계 3 이상이면 호신강기 7 추가.",
+      "effects": [
+        { "op": "block", "value": 10 },
+        { "op": "ifCombo", "min": 3, "then": [{ "op": "block", "value": 7 }] }
+      ]
+    }
+  },
+  {
+    "id": "gyeonryong_jaejeon", "name": "견룡재전", "hanja": "見龍在田", "school": "gaebang",
+    "line": "wai", "cost": 1, "rarity": "common", "target": "enemy",
+    "text": "8 피해.",
+    "effects": [{ "op": "damage", "value": 8 }],
+    "upgrade": { "text": "11 피해.", "effects": [{ "op": "damage", "value": 11 }] }
+  },
+  {
+    "id": "isang_bingji", "name": "이상빙지", "hanja": "履霜氷至", "school": "gaebang",
+    "line": "wai", "cost": 1, "rarity": "common", "target": "enemy",
+    "text": "6 피해. 쇠약 1.",
+    "effects": [{ "op": "damage", "value": 6 }, { "op": "applyStatus", "status": "weak", "value": 1 }],
+    "upgrade": {
+      "text": "8 피해. 쇠약 2.",
+      "effects": [{ "op": "damage", "value": 8 }, { "op": "applyStatus", "status": "weak", "value": 2 }]
+    }
+  },
+  {
+    "id": "jingyeong_baengni", "name": "진경백리", "hanja": "震驚百里", "school": "gaebang",
+    "line": "wai", "cost": 3, "rarity": "rare", "target": "allEnemies",
+    "text": "적 전체 12 피해.",
+    "effects": [{ "op": "damage", "value": 12, "target": "allEnemies" }],
+    "upgrade": { "text": "적 전체 17 피해.", "effects": [{ "op": "damage", "value": 17, "target": "allEnemies" }] }
+  },
+  {
+    "id": "siseung_yungnyong", "name": "시승육룡", "hanja": "時乘六龍", "school": "gaebang",
+    "line": "wai", "cost": 1, "rarity": "common", "target": "enemy",
+    "text": "7 피해. 카드 1장.",
+    "effects": [{ "op": "damage", "value": 7 }, { "op": "draw", "value": 1 }],
+    "upgrade": { "text": "9 피해. 카드 1장.", "effects": [{ "op": "damage", "value": 9 }, { "op": "draw", "value": 1 }] }
+  },
+  {
+    "id": "doryeo_girae", "name": "돌여기래", "hanja": "突如其來", "school": "gaebang",
+    "line": "wai", "cost": 0, "rarity": "rare", "target": "enemy",
+    "text": "5 피해. 연계 3 이상이면 9 피해 추가.",
+    "effects": [
+      { "op": "damage", "value": 5 },
+      { "op": "ifCombo", "min": 3, "then": [{ "op": "damage", "value": 9 }] }
+    ],
+    "upgrade": {
+      "text": "7 피해. 연계 3 이상이면 12 피해 추가.",
+      "effects": [
+        { "op": "damage", "value": 7 },
+        { "op": "ifCombo", "min": 3, "then": [{ "op": "damage", "value": 12 }] }
+      ]
+    }
+  },
+  {
+    "id": "sinryong_pami", "name": "신룡파미", "hanja": "神龍擺尾", "school": "gaebang",
+    "line": "wai", "cost": 2, "rarity": "rare", "target": "enemy",
+    "text": "11 피해, 2회.",
+    "effects": [{ "op": "damage", "value": 11, "hits": 2 }],
+    "upgrade": { "text": "15 피해, 2회.", "effects": [{ "op": "damage", "value": 15, "hits": 2 }] }
+  },
+  {
+    "id": "hangryong_jinsu", "name": "항룡진수", "hanja": "亢龍震首", "school": "gaebang",
+    "line": "wai", "cost": 3, "rarity": "ultra", "target": "enemy",
+    "text": "30 피해. 연계 5 이상이면 20 피해 추가.",
+    "effects": [
+      { "op": "damage", "value": 30 },
+      { "op": "ifCombo", "min": 5, "then": [{ "op": "damage", "value": 20 }] }
+    ],
+    "upgrade": {
+      "text": "38 피해. 연계 5 이상이면 26 피해 추가.",
+      "effects": [
+        { "op": "damage", "value": 38 },
+        { "op": "ifCombo", "min": 5, "then": [{ "op": "damage", "value": 26 }] }
+      ]
+    }
+  },
+  {
+    "id": "bongta_ssanggyeon", "name": "봉타쌍견", "hanja": "棒打雙犬", "school": "gaebang",
+    "line": "wai", "cost": 1, "rarity": "common", "target": "allEnemies",
+    "text": "적 전체 6 피해.",
+    "effects": [{ "op": "damage", "value": 6, "target": "allEnemies" }],
+    "upgrade": { "text": "적 전체 9 피해.", "effects": [{ "op": "damage", "value": 9, "target": "allEnemies" }] }
+  },
+  {
+    "id": "balgu_jocheon", "name": "발구조천", "hanja": "撥狗朝天", "school": "gaebang",
+    "line": "gyeong", "cost": 1, "rarity": "common", "target": "enemy",
+    "text": "6 피해. 취약 1.",
+    "effects": [{ "op": "damage", "value": 6 }, { "op": "applyStatus", "status": "vulnerable", "value": 1 }],
+    "upgrade": {
+      "text": "8 피해. 취약 2.",
+      "effects": [{ "op": "damage", "value": 8 }, { "op": "applyStatus", "status": "vulnerable", "value": 2 }]
+    }
+  },
+  {
+    "id": "apgu_bae", "name": "압구배", "hanja": "壓狗背", "school": "gaebang",
+    "line": "nae", "cost": 1, "rarity": "common", "target": "enemy",
+    "text": "호신강기 6. 4 피해.",
+    "effects": [{ "op": "block", "value": 6 }, { "op": "damage", "value": 4 }],
+    "upgrade": { "text": "호신강기 9. 6 피해.", "effects": [{ "op": "block", "value": 9 }, { "op": "damage", "value": 6 }] }
+  },
+  {
+    "id": "banjeol_gudun", "name": "반절구둔", "hanja": "反截狗臀", "school": "gaebang",
+    "line": "gyeong", "cost": 1, "rarity": "rare", "target": "enemy",
+    "text": "7 피해. 파훼하면 카드 2장.",
+    "effects": [
+      { "op": "damage", "value": 7 },
+      { "op": "ifBreak", "then": [{ "op": "draw", "value": 2 }] }
+    ],
+    "upgrade": {
+      "text": "10 피해. 파훼하면 카드 2장.",
+      "effects": [
+        { "op": "damage", "value": 10 },
+        { "op": "ifBreak", "then": [{ "op": "draw", "value": 2 }] }
+      ]
+    }
+  },
+  {
+    "id": "cheonha_mugu", "name": "천하무구", "hanja": "天下無狗", "school": "gaebang",
+    "line": "wai", "cost": 2, "rarity": "rare", "target": "enemy",
+    "text": "9 피해, 2회. 연계 3 이상이면 취약 1.",
+    "effects": [
+      { "op": "damage", "value": 9, "hits": 2 },
+      { "op": "ifCombo", "min": 3, "then": [{ "op": "applyStatus", "status": "vulnerable", "value": 1 }] }
+    ],
+    "upgrade": {
+      "text": "12 피해, 2회. 연계 3 이상이면 취약 2.",
+      "effects": [
+        { "op": "damage", "value": 12, "hits": 2 },
+        { "op": "ifCombo", "min": 3, "then": [{ "op": "applyStatus", "status": "vulnerable", "value": 2 }] }
+      ]
+    }
+  },
+  {
+    "id": "ogu_taljang", "name": "오구탈장", "hanja": "惡狗奪杖", "school": "gaebang",
+    "line": "gyeong", "cost": 1, "rarity": "common", "target": "enemy",
+    "text": "5 피해. 카드 1장.",
+    "effects": [{ "op": "damage", "value": 5 }, { "op": "draw", "value": 1 }],
+    "upgrade": { "text": "7 피해. 카드 1장.", "effects": [{ "op": "damage", "value": 7 }, { "op": "draw", "value": 1 }] }
+  },
+  {
+    "id": "bonghwan_gyeok", "name": "봉환격", "hanja": "棒環擊", "school": "gaebang",
+    "line": "wai", "cost": 1, "rarity": "common", "target": "enemy",
+    "text": "7 피해.",
+    "effects": [{ "op": "damage", "value": 7 }],
+    "upgrade": { "text": "10 피해.", "effects": [{ "op": "damage", "value": 10 }] }
+  },
+  {
+    "id": "jangbeop_gigyo", "name": "장법기교", "hanja": "杖法機巧", "school": "gaebang",
+    "line": "sul", "cost": 0, "rarity": "common", "target": "self", "exhaust": true,
+    "text": "카드 1장. 기 1. 사용 후 소멸.",
+    "effects": [{ "op": "draw", "value": 1 }, { "op": "gainQi", "value": 1 }],
+    "upgrade": {
+      "text": "카드 2장. 기 1. 사용 후 소멸.",
+      "effects": [{ "op": "draw", "value": 2 }, { "op": "gainQi", "value": 1 }]
+    }
+  },
+  {
+    "id": "hoengsobong", "name": "횡소봉", "hanja": "橫掃棒", "school": "gaebang",
+    "line": "wai", "cost": 2, "rarity": "common", "target": "allEnemies",
+    "text": "적 전체 8 피해.",
+    "effects": [{ "op": "damage", "value": 8, "target": "allEnemies" }],
+    "upgrade": { "text": "적 전체 11 피해.", "effects": [{ "op": "damage", "value": 11, "target": "allEnemies" }] }
+  },
+  {
+    "id": "bongjin", "name": "봉진", "hanja": "棒陣", "school": "gaebang",
+    "line": "nae", "cost": 2, "rarity": "rare", "target": "self",
+    "text": "호신강기 10. 연계 3 이상이면 자신 기세 1.",
+    "effects": [
+      { "op": "block", "value": 10 },
+      { "op": "ifCombo", "min": 3, "then": [{ "op": "applyStatus", "status": "momentum", "value": 1, "target": "self" }] }
+    ],
+    "upgrade": {
+      "text": "호신강기 14. 연계 3 이상이면 자신 기세 2.",
+      "effects": [
+        { "op": "block", "value": 14 },
+        { "op": "ifCombo", "min": 3, "then": [{ "op": "applyStatus", "status": "momentum", "value": 2, "target": "self" }] }
+      ]
+    }
+  },
+  {
+    "id": "chwibo", "name": "취보", "hanja": "醉步", "school": "gaebang",
+    "line": "gyeong", "cost": 1, "rarity": "basic", "target": "enemy",
+    "text": "5 피해. 자신 잔상 1.",
+    "effects": [
+      { "op": "damage", "value": 5 },
+      { "op": "applyStatus", "status": "afterimage", "value": 1, "target": "self" }
+    ],
+    "upgrade": {
+      "text": "7 피해. 자신 잔상 1.",
+      "effects": [
+        { "op": "damage", "value": 7 },
+        { "op": "applyStatus", "status": "afterimage", "value": 1, "target": "self" }
+      ]
+    }
+  },
+  {
+    "id": "chwigwon", "name": "취권", "hanja": "醉拳", "school": "gaebang",
+    "line": "wai", "cost": 1, "rarity": "common", "target": "enemy",
+    "text": "9 피해. 자신 쇠약 1.",
+    "effects": [
+      { "op": "damage", "value": 9 },
+      { "op": "applyStatus", "status": "weak", "value": 1, "target": "self" }
+    ],
+    "upgrade": {
+      "text": "12 피해. 자신 쇠약 1.",
+      "effects": [
+        { "op": "damage", "value": 12 },
+        { "op": "applyStatus", "status": "weak", "value": 1, "target": "self" }
+      ]
+    }
+  },
+  {
+    "id": "geolsik", "name": "걸식", "hanja": "乞食", "school": "gaebang",
+    "line": "sul", "cost": 0, "rarity": "common", "target": "self",
+    "text": "카드 1장.",
+    "effects": [{ "op": "draw", "value": 1 }],
+    "upgrade": { "text": "카드 2장.", "effects": [{ "op": "draw", "value": 2 }] }
+  },
+  {
+    "id": "padogeol", "name": "파도걸", "hanja": "破刀乞", "school": "gaebang",
+    "line": "gyeong", "cost": 1, "rarity": "common", "target": "enemy",
+    "text": "6 피해. 자신 잔상 1.",
+    "effects": [
+      { "op": "damage", "value": 6 },
+      { "op": "applyStatus", "status": "afterimage", "value": 1, "target": "self" }
+    ],
+    "upgrade": {
+      "text": "8 피해. 자신 잔상 1.",
+      "effects": [
+        { "op": "damage", "value": 8 },
+        { "op": "applyStatus", "status": "afterimage", "value": 1, "target": "self" }
+      ]
+    }
+  },
+  {
+    "id": "manggeukchwi", "name": "망극취", "hanja": "忘極醉", "school": "gaebang",
+    "line": "nae", "cost": 2, "rarity": "rare", "target": "self",
+    "text": "호신강기 9. 자신 기세 2.",
+    "effects": [
+      { "op": "block", "value": 9 },
+      { "op": "applyStatus", "status": "momentum", "value": 2, "target": "self" }
+    ],
+    "upgrade": {
+      "text": "호신강기 13. 자신 기세 2.",
+      "effects": [
+        { "op": "block", "value": 13 },
+        { "op": "applyStatus", "status": "momentum", "value": 2, "target": "self" }
+      ]
+    }
+  },
+  {
+    "id": "gaegeol_jin", "name": "개걸진", "hanja": "丐乞陣", "school": "gaebang",
+    "line": "nae", "cost": 1, "rarity": "common", "target": "self",
+    "text": "호신강기 5. 카드 1장.",
+    "effects": [{ "op": "block", "value": 5 }, { "op": "draw", "value": 1 }],
+    "upgrade": { "text": "호신강기 8. 카드 1장.", "effects": [{ "op": "block", "value": 8 }, { "op": "draw", "value": 1 }] }
+  },
+  {
+    "id": "nujuhaeng", "name": "누추행", "hanja": "陋醜行", "school": "gaebang",
+    "line": "gyeong", "cost": 0, "rarity": "common", "target": "enemy",
+    "text": "3 피해. 쇠약 1.",
+    "effects": [{ "op": "damage", "value": 3 }, { "op": "applyStatus", "status": "weak", "value": 1 }],
+    "upgrade": {
+      "text": "5 피해. 쇠약 1.",
+      "effects": [{ "op": "damage", "value": 5 }, { "op": "applyStatus", "status": "weak", "value": 1 }]
+    }
+  },
+  {
+    "id": "chwihu_ilgyeok", "name": "취후일격", "hanja": "醉後一擊", "school": "gaebang",
+    "line": "wai", "cost": 2, "rarity": "rare", "target": "enemy",
+    "text": "13 피해. 연계 3 이상이면 자신 기세 2.",
+    "effects": [
+      { "op": "damage", "value": 13 },
+      { "op": "ifCombo", "min": 3, "then": [{ "op": "applyStatus", "status": "momentum", "value": 2, "target": "self" }] }
+    ],
+    "upgrade": {
+      "text": "18 피해. 연계 3 이상이면 자신 기세 2.",
+      "effects": [
+        { "op": "damage", "value": 18 },
+        { "op": "ifCombo", "min": 3, "then": [{ "op": "applyStatus", "status": "momentum", "value": 2, "target": "self" }] }
+      ]
+    }
+  },
+  {
+    "id": "baekgyeol_hoe", "name": "백결회", "hanja": "百結會", "school": "gaebang",
+    "line": "sul", "cost": 1, "rarity": "rare", "target": "self", "exhaust": true,
+    "text": "카드 2장. 기 1. 사용 후 소멸.",
+    "effects": [{ "op": "draw", "value": 2 }, { "op": "gainQi", "value": 1 }],
+    "upgrade": {
+      "text": "카드 3장. 기 1. 사용 후 소멸.",
+      "effects": [{ "op": "draw", "value": 3 }, { "op": "gainQi", "value": 1 }]
+    }
+  },
+  {
+    "id": "chwihyang", "name": "취향", "hanja": "醉鄕", "school": "gaebang",
+    "line": "nae", "cost": 1, "rarity": "common", "target": "self",
+    "text": "호신강기 6. 자신 잔상 1.",
+    "effects": [
+      { "op": "block", "value": 6 },
+      { "op": "applyStatus", "status": "afterimage", "value": 1, "target": "self" }
+    ],
+    "upgrade": {
+      "text": "호신강기 9. 자신 잔상 1.",
+      "effects": [
+        { "op": "block", "value": 9 },
+        { "op": "applyStatus", "status": "afterimage", "value": 1, "target": "self" }
+      ]
+    }
+  },
+  {
+    "id": "gyeolsu", "name": "결수", "hanja": "決手", "school": "gaebang",
+    "line": "wai", "cost": 1, "rarity": "common", "target": "enemy",
+    "text": "8 피해. 파훼하면 기 1.",
+    "effects": [
+      { "op": "damage", "value": 8 },
+      { "op": "ifBreak", "then": [{ "op": "gainQi", "value": 1 }] }
+    ],
+    "upgrade": {
+      "text": "11 피해. 파훼하면 기 1.",
+      "effects": [
+        { "op": "damage", "value": 11 },
+        { "op": "ifBreak", "then": [{ "op": "gainQi", "value": 1 }] }
+      ]
+    }
+  },
+  {
+    "id": "dansu", "name": "단수", "hanja": "斷手", "school": "gaebang",
+    "line": "gyeong", "cost": 1, "rarity": "common", "target": "enemy",
+    "text": "4 피해, 2회.",
+    "effects": [{ "op": "damage", "value": 4, "hits": 2 }],
+    "upgrade": { "text": "6 피해, 2회.", "effects": [{ "op": "damage", "value": 6, "hits": 2 }] }
+  },
+  {
+    "id": "gangsu", "name": "강수", "hanja": "剛手", "school": "gaebang",
+    "line": "wai", "cost": 3, "rarity": "rare", "target": "enemy",
+    "text": "22 피해.",
+    "effects": [{ "op": "damage", "value": 22 }],
+    "upgrade": { "text": "29 피해.", "effects": [{ "op": "damage", "value": 29 }] }
+  },
+  {
+    "id": "seokgyeok", "name": "석격", "hanja": "石擊", "school": "gaebang",
+    "line": "wai", "cost": 1, "rarity": "common", "target": "enemy",
+    "text": "7 피해. 연계 3 이상이면 카드 1장.",
+    "effects": [
+      { "op": "damage", "value": 7 },
+      { "op": "ifCombo", "min": 3, "then": [{ "op": "draw", "value": 1 }] }
+    ],
+    "upgrade": {
+      "text": "10 피해. 연계 3 이상이면 카드 1장.",
+      "effects": [
+        { "op": "damage", "value": 10 },
+        { "op": "ifCombo", "min": 3, "then": [{ "op": "draw", "value": 1 }] }
+      ]
+    }
+  },
+  {
+    "id": "pungun_bo", "name": "풍운보", "hanja": "風雲步", "school": "gaebang",
+    "line": "gyeong", "cost": 1, "rarity": "rare", "target": "self",
+    "text": "자신 잔상 2. 카드 1장.",
+    "effects": [
+      { "op": "applyStatus", "status": "afterimage", "value": 2, "target": "self" },
+      { "op": "draw", "value": 1 }
+    ],
+    "upgrade": {
+      "text": "자신 잔상 2. 카드 2장.",
+      "effects": [
+        { "op": "applyStatus", "status": "afterimage", "value": 2, "target": "self" },
+        { "op": "draw", "value": 2 }
+      ]
+    }
+  },
+  {
+    "id": "cheolgol", "name": "철골", "hanja": "鐵骨", "school": "gaebang",
+    "line": "nae", "cost": 2, "rarity": "common", "target": "self",
+    "text": "호신강기 11.",
+    "effects": [{ "op": "block", "value": 11 }],
+    "upgrade": { "text": "호신강기 15.", "effects": [{ "op": "block", "value": 15 }] }
+  },
+  {
+    "id": "yeongi_josik", "name": "연기조식", "hanja": "練氣調息", "school": "gaebang",
+    "line": "sul", "cost": 1, "rarity": "common", "target": "self", "exhaust": true,
+    "text": "기 2. 사용 후 소멸.",
+    "effects": [{ "op": "gainQi", "value": 2 }],
+    "upgrade": {
+      "text": "기 2. 카드 1장. 사용 후 소멸.",
+      "effects": [{ "op": "gainQi", "value": 2 }, { "op": "draw", "value": 1 }]
+    }
+  },
+  {
+    "id": "gwanha", "name": "관하", "hanja": "貫河", "school": "gaebang",
+    "line": "wai", "cost": 2, "rarity": "rare", "target": "enemy",
+    "text": "15 피해. 파훼하면 10 피해 추가.",
+    "effects": [
+      { "op": "damage", "value": 15 },
+      { "op": "ifBreak", "then": [{ "op": "damage", "value": 10 }] }
+    ],
+    "upgrade": {
+      "text": "20 피해. 파훼하면 13 피해 추가.",
+      "effects": [
+        { "op": "damage", "value": 20 },
+        { "op": "ifBreak", "then": [{ "op": "damage", "value": 13 }] }
+      ]
+    }
+  },
+  {
+    "id": "mugu_ilbong", "name": "무구일봉", "hanja": "無狗一棒", "school": "gaebang",
+    "line": "wai", "cost": 2, "rarity": "ultra", "target": "enemy",
+    "text": "18 피해. 연계 4 이상이면 18 피해 추가.",
+    "effects": [
+      { "op": "damage", "value": 18 },
+      { "op": "ifCombo", "min": 4, "then": [{ "op": "damage", "value": 18 }] }
+    ],
+    "upgrade": {
+      "text": "24 피해. 연계 4 이상이면 24 피해 추가.",
+      "effects": [
+        { "op": "damage", "value": 24 },
+        { "op": "ifCombo", "min": 4, "then": [{ "op": "damage", "value": 24 }] }
+      ]
+    }
+  },
+  {
+    "id": "hanggeol_daejin", "name": "항걸대진", "hanja": "抗乞大陣", "school": "gaebang",
+    "line": "nae", "cost": 3, "rarity": "ultra", "target": "self",
+    "text": "호신강기 20. 자신 기세 3.",
+    "effects": [
+      { "op": "block", "value": 20 },
+      { "op": "applyStatus", "status": "momentum", "value": 3, "target": "self" }
+    ],
+    "upgrade": {
+      "text": "호신강기 26. 자신 기세 3.",
+      "effects": [
+        { "op": "block", "value": 26 },
+        { "op": "applyStatus", "status": "momentum", "value": 3, "target": "self" }
+      ]
+    }
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "gaebang": {
+    "id": "gaebang", "name": "개방", "hanja": "丐幇", "line": "wai",
+    "maxHp": 80, "maxQi": 3,
+    "startingDeck": [
+      "byeokta", "byeokta", "byeokta", "byeokta", "byeokta",
+      "bangsin", "bangsin", "bangsin", "bangsin", "chwibo"
+    ],
+    "startingRelic": "banjjok_bigeup"
+  }
+}
