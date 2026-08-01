@@ -111,6 +111,22 @@ function renderBattle(api: AppApi, run: RunState, combat: CombatState): HTMLElem
   let focusUid: string | null = alive()[0]?.uid ?? null;
   let pile: PileKind | null = null;
 
+  // paint()의 일반 초점 복원(activeKey/data-fkey, "조작 전 초점과 같은 의미의
+  // 요소로 되돌아간다")은 카드 발동·적 선택처럼 "그 요소가 그대로 있으면 계속
+  // 그 자리"인 조작엔 잘 맞는다. 손패/버린 패 오버레이를 여닫는 전이는 다른
+  // 규칙이 필요하다 — 열 때는 지금 초점(토글 버튼)이 아니라 trapFocus가 정하는
+  // 새 자리(오버레이 안 첫 요소)로 옮겨야 하고, 닫을 때는 "방금 초점이 있던
+  // 자리"(오버레이의 닫기 버튼)가 아니라 "이 오버레이를 열었던 바로 그 토글
+  // 버튼"으로 못박아야 한다. 두 버튼에 같은 data-fkey를 주고 activeKey의 자동
+  // 판정에 기대면, 열 때 어느 쪽이 먼저 매칭되는지가 DOM 순서·trapFocus의
+  // queueMicrotask 타이밍에 암묵적으로 좌우된다(실제로 그렇게 짜여 있었다).
+  // 그래서 두 버튼에는 서로 다른 fkey를 주고, 여닫는 세 갈래(토글 버튼 재클릭·
+  // 오버레이의 닫기 버튼·Escape)는 전부 이 값을 명시적으로 정해 다음 paint()
+  // 한 번에만 쓰고 버린다 — undefined면 평소대로 activeKey()에 맡기고, null이면
+  // 이번 paint()는 초점에 손대지 않으며(trapFocus에 맡긴다), 문자열이면 그
+  // fkey로 못박는다.
+  let pendingFocusKey: string | null | undefined;
+
   const acting = combat.phase === 'player';
 
   const defOf = (card: CardInstance): CardDef =>
@@ -163,6 +179,7 @@ function renderBattle(api: AppApi, run: RunState, combat: CombatState): HTMLElem
 
   function cancel(): void {
     if (pile !== null) {
+      pendingFocusKey = `pile:${pile}`;
       pile = null;
       paint();
       return;
@@ -347,7 +364,15 @@ function renderBattle(api: AppApi, run: RunState, combat: CombatState): HTMLElem
     });
     button.setAttribute('aria-label', `${PILE_LABEL[kind]} ${count}장 보기`);
     button.addEventListener('click', () => {
-      pile = pile === kind ? null : kind;
+      if (pile === kind) {
+        // 스스로 닫는 경우도 이 버튼에 남는다 — 다른 닫는 경로(닫기 버튼·Escape)와
+        // 같은 규칙으로 명시해 둔다.
+        pendingFocusKey = `pile:${kind}`;
+        pile = null;
+      } else {
+        pile = kind;
+        pendingFocusKey = null; // 여는 전이 — 초점 이동은 trapFocus(오버레이 첫 요소)에 맡긴다.
+      }
       paint();
     });
     return button;
@@ -391,15 +416,21 @@ function renderBattle(api: AppApi, run: RunState, combat: CombatState): HTMLElem
 
     // 뿌리(root)가 이 아래에서도 여전히 손패·행동바를 들고 있다(paint()가 그 위에
     // 이 오버레이를 얹을 뿐 걷어내지 않는다) — Tab을 가두지 않으면 화면 뒤로 보이지도
-    // 않는 카드/버튼으로 새어나간다. dataset.fkey는 paint()의 자체 초점 복원
-    // 장치(activeKey)가 쓰는 열쇠다 — 이 화면은 매 조작마다 통째로 다시 그려지므로
-    // (map.ts·rest.ts처럼 바탕 화면이 그대로 남는 오버레이가 아니다) trapFocus가
-    // 기억하는 DOM 참조는 다시 그리는 순간 못 쓰게 된다. 그래서 "닫기"에도 같은
-    // pile:${kind} 열쇠를 달아, 닫힐 때 이 자리를 열었던 바로 그 버튼으로 되돌아가게 한다.
+    // 않는 카드/버튼으로 새어나간다. "닫기"의 fkey는 토글 버튼의 fkey(pile:${kind})와
+    // 일부러 다르게 둔다 — 같으면 열려 있는 동안 둘 다 같은 값을 갖게 되어(토글
+    // 버튼은 항상, 닫기 버튼은 열린 동안) activeKey()의 querySelector가 어느 쪽을
+    // 찾을지 DOM 순서에 암묵적으로 좌우된다. 실제 복원 목적지는 paint()의
+    // pendingFocusKey가 명시적으로 정하므로(위 참조), 이 fkey는 "오버레이가 열린
+    // 채로 다른 이유(예: 열어 둔 채 숫자키로 카드 발동)로 다시 그려질 때도 초점이
+    // 오버레이 안에 남는다"는 부수 효과만 챙긴다.
     const close = el('button', {
-      class: 'btn', type: 'button', textContent: '닫기', dataset: { fkey: `pile:${kind}` },
+      class: 'btn', type: 'button', textContent: '닫기', dataset: { fkey: 'pile-close' },
     });
-    close.addEventListener('click', () => { pile = null; paint(); });
+    close.addEventListener('click', () => {
+      pendingFocusKey = `pile:${kind}`;
+      pile = null;
+      paint();
+    });
 
     const box = el('div', { class: 'pile-view' }, [
       el('div', { class: 'pile-head' }, [
@@ -430,7 +461,12 @@ function renderBattle(api: AppApi, run: RunState, combat: CombatState): HTMLElem
   function paint(): void {
     // 손패는 가로 스크롤이다. 다시 그릴 때 스크롤 위치를 안 지키면 카드를 고를
     // 때마다 손패가 맨 앞으로 튕겨, 방금 고른 카드가 화면 밖으로 사라진다.
-    const key = activeKey();
+    // activeKey()는 지우기 전에 반드시 읽어야 한다(지운 뒤엔 activeElement가
+    // 달라진다) — pendingFocusKey로 이번 결과를 버리게 되더라도 먼저 읽어 둔다.
+    const auto = activeKey();
+    const override = pendingFocusKey;
+    pendingFocusKey = undefined;
+    const key = override !== undefined ? override : auto;
     const scrolled = root.querySelector<HTMLElement>('.hand')?.scrollLeft ?? 0;
 
     clear(root);

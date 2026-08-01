@@ -327,3 +327,79 @@ describe('전투 화면 — 접근성', () => {
     expect(chip.getAttribute('aria-label')).toBe('외공');
   });
 });
+
+describe('전투 화면 — 손패/버린 패 모달의 초점 관리', () => {
+  // 이 화면은 조작마다 전체를 다시 그린다(map.ts·rest.ts와 달리 바탕 화면이
+  // 그대로 남는 오버레이가 아니다). 이 모달이 실제 접근성 결함이었던 자리라
+  // (trapFocus 없음, 이번에 추가) 회귀를 잡을 테스트가 없었다 — 코드 리뷰 지적.
+  it('열면 초점이 모달 안(닫기 버튼)으로 옮겨가고, Tab을 눌러도 뒤에 깔린 손패로 새지 않는다', async () => {
+    const { root } = mount(makeCombat(['deulgae']));
+
+    const trigger = root.querySelector<HTMLButtonElement>('[data-fkey="pile:draw"]')!;
+    trigger.click();
+
+    // trapFocus의 첫 초점 이동은 큐에 미뤄진다(dom.ts의 trapFocus 주석 참조) —
+    // 이 렌더가 반환된 뒤 한 틱 기다려야 반영된다.
+    await Promise.resolve();
+
+    const overlay = root.querySelector('.pile-view');
+    expect(overlay).not.toBeNull();
+    const close = overlay!.querySelector<HTMLButtonElement>('button')!;
+    expect(document.activeElement).toBe(close);
+
+    // 이 모달의 유일한 포커스 대상은 닫기 버튼뿐이다(카드 목록은 순수 텍스트) —
+    // Tab을 눌러도 오버레이 밖(손패·행동바)으로 새지 않고 그 안에 갇혀야 한다.
+    close.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+    expect(overlay!.contains(document.activeElement)).toBe(true);
+    close.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true }));
+    expect(overlay!.contains(document.activeElement)).toBe(true);
+  });
+
+  it('닫기 버튼을 누르면 오버레이가 사라지고 초점이 정확히 연 버튼으로 돌아온다', async () => {
+    const { root } = mount(makeCombat(['deulgae']));
+    root.querySelector<HTMLButtonElement>('[data-fkey="pile:draw"]')!.click();
+    await Promise.resolve();
+
+    const close = root.querySelector<HTMLButtonElement>('.pile-view button')!;
+    close.click();
+
+    expect(root.querySelector('.pile-view')).toBeNull();
+    expect(document.activeElement).toBe(root.querySelector('[data-fkey="pile:draw"]'));
+  });
+
+  it('Escape로 닫아도 초점이 연 버튼으로 돌아온다', async () => {
+    const { root } = mount(makeCombat(['deulgae']));
+    root.querySelector<HTMLButtonElement>('[data-fkey="pile:discard"]')!.click();
+    await Promise.resolve();
+    expect(root.querySelector('.pile-view')).not.toBeNull();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(root.querySelector('.pile-view')).toBeNull();
+    expect(document.activeElement).toBe(root.querySelector('[data-fkey="pile:discard"]'));
+  });
+
+  it('토글 버튼을 다시 눌러 스스로 닫아도 같은 버튼에 초점이 남는다', async () => {
+    const { root } = mount(makeCombat(['deulgae']));
+    root.querySelector<HTMLButtonElement>('[data-fkey="pile:draw"]')!.click();
+    await Promise.resolve();
+    expect(root.querySelector('.pile-view')).not.toBeNull();
+
+    // 다시 눌러 스스로 닫는다 — 새로 그려진 트리에서 다시 찾아야 한다(이전
+    // 참조는 clear(root)로 이미 문서에서 떨어져 나갔다).
+    root.querySelector<HTMLButtonElement>('[data-fkey="pile:draw"]')!.click();
+
+    expect(root.querySelector('.pile-view')).toBeNull();
+    expect(document.activeElement).toBe(root.querySelector('[data-fkey="pile:draw"]'));
+  });
+
+  it('토글 버튼과 닫기 버튼은 서로 다른 fkey를 쓴다(모호한 매칭 방지)', async () => {
+    const { root } = mount(makeCombat(['deulgae']));
+    root.querySelector<HTMLButtonElement>('[data-fkey="pile:draw"]')!.click();
+    await Promise.resolve();
+
+    const trigger = root.querySelector<HTMLButtonElement>('[data-fkey="pile:draw"]')!;
+    const close = root.querySelector<HTMLButtonElement>('.pile-view button')!;
+    expect(close.dataset.fkey).not.toBe(trigger.dataset.fkey);
+  });
+});

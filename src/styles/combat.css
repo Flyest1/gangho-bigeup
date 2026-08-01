@@ -55,6 +55,13 @@
   display: grid;
   grid-template-rows: auto 1fr auto auto auto;
   height: 100%;
+  /* .screen(layout.css)이 flex:1로 알림 자리와 공간을 나눠 쓰므로, 이 그리드가
+     받는 실제 높이는 알림이 떠 있을 때 100dvh보다 작아진다. min-height:0이
+     없으면 그리드 컨테이너가 내용의 "자동 최소 크기" 밑으로 안 줄어들어(플렉스·
+     그리드의 흔한 함정) 알림이 화면을 밀어내는 대신 화면이 넘쳐 버릴 수 있다.
+     enemy-row가 이미 overflow-y:auto라 그 행 자체의 최소 기여는 작으므로,
+     실제로는 이 여유가 대부분 enemy-row의 스크롤로 흡수된다. */
+  min-height: 0;
   overflow: hidden;
   position: relative;
   /* .combat-backdrop이 음수 z-index로 이 화면 안에서만 맨 뒤에 깔리게 한다 —

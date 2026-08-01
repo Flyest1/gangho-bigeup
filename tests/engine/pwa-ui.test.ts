@@ -48,6 +48,19 @@ describe('mountPwaUpdates', () => {
     expect(registerSWMock).not.toHaveBeenCalled();
   });
 
+  it('document가 있어도 registerSW 자체가 던지면(등록 실패 등) 조용히 넘어간다', async () => {
+    // typeof document 가드만으로는 못 잡는 경로다 — 이 테스트는 try/catch를
+    // 직접 겨냥한다(가드를 통과한 뒤, 브라우저에서 실제 SW 등록이 실패하는
+    // 상황을 흉내낸다). try/catch를 지워도 이 가드 하나만으로는 여기서
+    // 아무것도 실패하지 않는다는 게 코드 리뷰의 지적이었다.
+    const { mountPwaUpdates } = await import('../../src/platform/pwa');
+    registerSWMock.mockImplementationOnce(() => {
+      throw new Error('SW 등록 실패');
+    });
+    expect(() => mountPwaUpdates()).not.toThrow();
+    expect(registerSWMock).toHaveBeenCalledTimes(1);
+  });
+
   it('onNeedRefresh가 부르면 적용 버튼이 있는 배너가 뜨고, 누르면 리로드 콜백이 true로 불린다', async () => {
     const { mountPwaUpdates } = await import('../../src/platform/pwa');
     mountPwaUpdates();

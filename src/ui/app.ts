@@ -115,7 +115,13 @@ export function mountApp(root: HTMLElement): void {
   }
 
   function render(): void {
-    // host(알림 자리)는 남겨 둔다 — 화면 콘텐츠만 지우고 다시 그린다.
+    // host(알림 자리)는 남겨 둔다 — 화면 콘텐츠만 지우고 다시 그린다. host는
+    // 더 이상 position:fixed로 떠 있지 않고 #app의 평범한 flex 자식이라(layout.css),
+    // 문서 순서가 실제로 위아래 배치를 정한다 — 지운 뒤 화면을 append하면 항상
+    // host *다음*에 붙으므로, host는 계속 맨 앞(위)에 남는다. 알림이 있으면 그
+    // 높이만큼 화면이 밀려 내려가고(자리를 차지할 뿐 덮지 않는다), 화면은
+    // flex-shrink로 남은 공간에 맞춰 줄어든다(전투 화면은 적 열이, 다른 화면은
+    // 스크롤이 그 축소를 흡수한다).
     for (const child of [...root.children]) {
       if (child !== host) child.remove();
     }
@@ -131,7 +137,6 @@ export function mountApp(root: HTMLElement): void {
     if (state.notice) notices.push({ text: state.notice, dismiss: () => api.dismissNotice() });
     if (state.saveNotice) notices.push({ text: state.saveNotice, dismiss: () => api.dismissSaveNotice() });
     for (const n of notices) host.append(renderNotice(n.text, n.dismiss));
-    root.append(host); // 항상 맨 뒤로 — position:fixed라 실제 위치는 문서 순서와 무관하다.
   }
 
   render();
