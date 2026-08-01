@@ -1366,7 +1366,7 @@ export type IntentKind = 'attack' | 'defend' | 'debuff' | 'buff' | 'special';
 export type CombatPhase = 'player' | 'enemy' | 'won' | 'lost';
 
 export type EffectAtom =
-  | { op: 'damage'; value: number; hits?: number; target?: EffectTarget }
+  | { op: 'damage'; value: number; hits?: number; target?: 'enemy' | 'allEnemies' }
   | { op: 'block'; value: number }
   | { op: 'draw'; value: number }
   | { op: 'gainQi'; value: number }
@@ -3338,6 +3338,15 @@ for (const r of relics) {
   for (const t of r.triggers ?? []) {
     if (!HOOKS.has(t.hook)) fail(`${r.id}: 알 수 없는 훅 ${t.hook}`);
     checkEffects(r.id, t.effects ?? []);
+    // 기물 훅은 술수(sul) 계열로 발동한다. 술수는 상성 순환에 참여하지 않으므로
+    // ifBreak 는 어떤 경우에도 성립하지 않는다. 조용히 죽은 효과를 데이터에서 막는다.
+    const walk = (atoms) => {
+      for (const a of atoms) {
+        if (a.op === 'ifBreak') fail(`${r.id}: 기물 훅에서 ifBreak 는 절대 발동하지 않는다`);
+        if (a.then) walk(a.then);
+      }
+    };
+    walk(t.effects ?? []);
   }
 }
 
