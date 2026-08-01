@@ -3300,6 +3300,9 @@ const STATUSES = new Set(['poison', 'naesang', 'vulnerable', 'weak', 'momentum',
 const LINES = new Set(['wai', 'gyeong', 'nae', 'sul']);
 const RARITIES = new Set(['basic', 'common', 'rare', 'ultra']);
 const MOD_KEYS = new Set(['maxHp', 'maxQi', 'handSize', 'startBlock', 'comboThreshold']);
+// applyEnemyEffects 가 명시적으로 무시하는 원자들. 적 행동 데이터에서 금지한다.
+const ENEMY_UNSUPPORTED = new Set(['draw', 'gainQi', 'keepBlock', 'loseBlock',
+  'ifCombo', 'ifBreak', 'counterStance']);
 const HOOKS = new Set(['onCombatStart', 'onTurnStart', 'onCombatEnd']);
 
 const errors = [];
@@ -3363,6 +3366,15 @@ for (const e of enemies) {
     if (!(a.weight > 0)) fail(`${e.id}/${a.id}: 가중치는 양수여야 한다`);
     if (!a.label) fail(`${e.id}/${a.id}: 의도 문구 누락`);
     checkEffects(`${e.id}/${a.id}`, a.effects ?? []);
+    // combat.ts 의 applyEnemyEffects 가 처리하지 않는 원자들이다. 거기서는 명시적으로
+    // 무시되므로 조용히 아무 일도 일어나지 않는다. 데이터 단계에서 막는다.
+    const walkEnemy = (atoms) => {
+      for (const x of atoms) {
+        if (ENEMY_UNSUPPORTED.has(x.op)) fail(`${e.id}/${a.id}: 적 행동은 ${x.op} 를 지원하지 않는다`);
+        if (x.then) walkEnemy(x.then);
+      }
+    };
+    walkEnemy(a.effects ?? []);
   }
 }
 
