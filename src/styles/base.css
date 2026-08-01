@@ -1,0 +1,22 @@
+:root {
+  --ink: #141110;
+  --paper: #ded3bd;
+  --gold: #c9a227;
+  --wai: #c0453a;
+  --gyeong: #3f8f6a;
+  --nae: #4a6ea8;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; }
+body {
+  background: var(--ink);
+  color: var(--paper);
+  font-family: 'Noto Serif KR', 'Batang', serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+#app { height: 100dvh; display: flex; flex-direction: column; }
+.boot { margin: auto; text-align: center; }
+.boot h1 { font-size: 2.5rem; letter-spacing: .3em; margin: 0 0 .2em; }
+.fan { font-size: .75rem; opacity: .6; margin-top: 2em; }
