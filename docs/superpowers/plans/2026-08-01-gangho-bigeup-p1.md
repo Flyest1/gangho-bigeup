@@ -3701,7 +3701,7 @@ export function generateMap(rng: Rng, act: number): GameMap {
 - [ ] **Step 4: 테스트 통과 확인**
 
 Run: `npx vitest run tests/engine/map.test.ts`
-Expected: PASS — 12 tests
+Expected: PASS — 14 tests
 
 - [ ] **Step 5: 커밋**
 
@@ -4525,7 +4525,7 @@ export function recordRunEnd(meta: MetaState, run: RunState): MetaState {
 - [ ] **Step 4: 테스트 통과 확인**
 
 Run: `npx vitest run tests/engine/save.test.ts`
-Expected: PASS — 12 tests
+Expected: PASS — 14 tests
 
 - [ ] **Step 5: 커밋**
 
