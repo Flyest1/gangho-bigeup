@@ -166,3 +166,34 @@ describe('연계 보너스 정의', () => {
     expect(comboBonusFor('nae')).toEqual({ damageBonus: 0, extra: [{ op: 'block', value: 5 }] });
   });
 });
+
+describe('불변성 (입력 상태를 변경하지 않는다)', () => {
+  it('damage는 입력 상태를 변경하지 않는다', () => {
+    const state = baseState();
+    const snapshot = structuredClone(state);
+
+    const out = applyEffects(state, [{ op: 'damage', value: 6 }], src);
+
+    expect(state).toEqual(snapshot);
+    expect(out.enemies).not.toBe(state.enemies);
+  });
+
+  it('draw 리셔플은 입력 상태를 변경하지 않는다', () => {
+    const state = baseState({ draw: [], discard: [card('d1'), card('d2')] });
+    const snapshot = structuredClone(state);
+
+    drawCards(state, 1);
+
+    expect(state).toEqual(snapshot);
+  });
+
+  it('applyStatus는 입력 상태를 변경하지 않는다', () => {
+    const state = baseState();
+    const snapshot = structuredClone(state);
+
+    applyEffects(state, [{ op: 'applyStatus', status: 'poison', value: 3 }], src);
+
+    expect(state).toEqual(snapshot);
+    expect(state.enemies[0]!.status).toEqual({});
+  });
+});
