@@ -24,8 +24,28 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm run build
+      - name: 데이터 검증
+        run: npm run validate
+      - name: 엔진 순수성
+        run: npm run check:purity
+      - name: 타입 검사
+        run: npm run typecheck
+      - name: 엔진 단위 테스트
+        run: npm run test
+      - name: 빌드
+        run: npm run build
+      - name: 오프라인 빌드 검증
+        run: npm run verify:build
+      - name: 브라우저 설치
+        run: npx playwright install --with-deps chromium
+      - name: 브라우저 스모크
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

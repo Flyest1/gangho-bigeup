@@ -14,6 +14,7 @@
     "test:e2e": "playwright test",
     "validate": "node tools/validate_data.mjs",
     "check:purity": "node tools/check_engine_purity.mjs",
+    "verify:build": "node tools/verify_build.mjs",
     "balance": "vite-node tools/balance_sim.ts"
   },
   "devDependencies": {
