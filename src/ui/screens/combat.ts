@@ -8,13 +8,15 @@
 import { canPlay, effectiveCard } from '../../engine/combat';
 import { CONTENT } from '../../engine/gamedata';
 import type { RunState } from '../../engine/run';
-import { matchup } from '../../engine/stance';
+
 import type { CardDef, CardInstance, CombatState, EnemyState, Line } from '../../engine/types';
 import type { AppApi } from '../app';
 import { renderStatusBadges, renderMeter } from '../components/bars';
 import { cardAriaLabel, renderCardFace, renderCardRow } from '../components/card';
 import { renderEnemy } from '../components/enemy';
-import { MATCHUP_LABEL, renderLineChip, renderStanceBar } from '../components/stance';
+import {
+  MATCHUP_LABEL, renderLineChip, renderStanceBar, summarizeVerdict, verdictAriaText,
+} from '../components/stance';
 import { clear, el } from '../dom';
 import { bindCombatKeys } from '../input';
 
@@ -200,20 +202,34 @@ function renderBattle(api: AppApi, run: RunState, combat: CombatState): HTMLElem
     const playable = canPlay(combat, card.uid, CONTENT);
     const face = renderCardFace(def, { upgraded: card.upgraded, playable });
 
-    const target = focusEnemy();
-    const hitsEnemy = def.target === 'enemy' || def.target === 'allEnemies';
+    // 이 초식이 실제로 맞는 적들. 적 전체 초식은 살아있는 전부, 하나를 겨누는
+    // 초식은 초점 적 하나다. 판정은 맞는 적 전부에 대해 참일 때만 한 장으로 적고,
+    // 갈리면 갈린다고 적는다 — 상성은 적마다 따로 계산되기 때문이다.
+    const hit: EnemyState[] = def.target === 'allEnemies'
+      ? alive()
+      : def.target === 'enemy' ? [focusEnemy()].filter((e): e is EnemyState => e !== undefined) : [];
     let verdict = '';
-    if (target && hitsEnemy && def.line !== 'sul') {
-      const m = matchup(def.line, target.stance);
-      if (m !== 'neutral') {
-        verdict = MATCHUP_LABEL[m].name;
-        const badge = el('span', { class: `card-mu mu-${m}` }, [
-          el('span', { class: 'mu-hanja', textContent: MATCHUP_LABEL[m].hanja }),
-          el('span', { class: 'mu-name', textContent: MATCHUP_LABEL[m].name }),
-        ]);
+    if (hit.length > 0 && def.line !== 'sul') {
+      const summary = summarizeVerdict(def.line, hit);
+      if (summary.kind !== 'none') {
+        verdict = verdictAriaText(summary);
+        const badge = summary.kind === 'uniform' && summary.matchup
+          ? el('span', { class: `card-mu mu-${summary.matchup}` }, [
+            el('span', { class: 'mu-hanja', textContent: MATCHUP_LABEL[summary.matchup].hanja }),
+            el('span', { class: 'mu-name', textContent: MATCHUP_LABEL[summary.matchup].name }),
+          ])
+          : el('span', { class: 'card-mu mu-mixed' }, [
+            el('span', {
+              class: 'mu-hanja',
+              textContent: [...new Set(summary.perEnemy.map((p) => MATCHUP_LABEL[p.matchup].hanja))].join(''),
+            }),
+            el('span', { class: 'mu-name', textContent: '갈림' }),
+          ]);
         badge.setAttribute('aria-hidden', 'true');
         face.append(badge);
-        face.classList.add(`verdict-${m}`);
+        if (summary.kind === 'uniform' && summary.matchup) {
+          face.classList.add(`verdict-${summary.matchup}`);
+        }
       }
     }
 

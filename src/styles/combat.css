@@ -39,6 +39,12 @@
 .mu-break { background: var(--gold); color: var(--ink); font-weight: 700; }
 .mu-neutral { border-color: rgba(222, 211, 189, 0.3); color: rgba(222, 211, 189, 0.7); }
 .mu-resisted { border: 1px dashed rgba(222, 211, 189, 0.45); color: rgba(222, 211, 189, 0.62); }
+/* 적마다 판정이 갈리는 적 전체 초식. 한쪽으로 단정하지 않는다. */
+.mu-mixed {
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  background: rgba(201, 162, 39, 0.12);
+}
 
 /* 적이 나를 파훼하는 자리에서는 같은 글자가 정반대의 뜻이다. */
 .tone-theirs .mu-break,

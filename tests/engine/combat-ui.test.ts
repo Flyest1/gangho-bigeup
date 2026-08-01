@@ -16,6 +16,7 @@ const DECK: CardInstance[] = [
   { uid: 'c1', defId: 'bangsin', upgraded: false },    // 내공 · 내공 1 · 호신강기 5
   { uid: 'c2', defId: 'gyeokgong', upgraded: false },  // 외공 · 내공 2 · 14 피해
   { uid: 'c3', defId: 'apgu_bae', upgraded: false },   // 내공 · 내공 1 · 적 대상
+  { uid: 'c4', defId: 'bongta_ssanggyeon', upgraded: false }, // 외공 · 내공 1 · 적 전체 6 피해
 ];
 
 function makeCombat(enemyIds: string[], patch: Partial<CombatState> = {}): CombatState {
@@ -60,7 +61,7 @@ describe('전투 화면 — 시험 고리', () => {
     const { root } = mount(makeCombat(['deulgae']));
 
     expect(root.classList.contains('combat')).toBe(true);
-    expect(root.querySelectorAll('.hand .card')).toHaveLength(4);
+    expect(root.querySelectorAll('.hand .card')).toHaveLength(5);
     expect(root.querySelectorAll('.enemy[data-hp]')).toHaveLength(1);
 
     const turn = root.querySelector('.turn-indicator');
@@ -202,6 +203,56 @@ describe('전투 화면 — 연계', () => {
   });
 });
 
+describe('전투 화면 — 적 전체 초식의 판정', () => {
+  // 봉타쌍견(c4)은 외공 계열로 적 전체를 친다. 상성은 적마다 따로 계산되므로,
+  // 카드에 붙는 판정은 그것이 가리키는 모든 적에게 참이어야 한다.
+  function twoEnemies(stanceA: 'wai' | 'gyeong' | 'nae', stanceB: 'wai' | 'gyeong' | 'nae'): CombatState {
+    const combat = makeCombat(['deulgae', 'sanjeok']);
+    return {
+      ...combat,
+      enemies: [
+        { ...combat.enemies[0]!, stance: stanceA },
+        { ...combat.enemies[1]!, stance: stanceB },
+      ],
+    };
+  }
+
+  it('맞는 적 전부가 같은 판정이면 그 판정을 그대로 적는다', () => {
+    const { root } = mount(twoEnemies('gyeong', 'gyeong'));
+    const aoe = root.querySelector('.hand-slot[data-uid="c4"]')!;
+    expect(aoe.querySelector('.card-mu')!.classList.contains('mu-break')).toBe(true);
+    expect(aoe.getAttribute('aria-label')).toContain('적 전체 파훼');
+  });
+
+  it('적마다 판정이 갈리면 한쪽으로 단정하지 않는다', () => {
+    // 외공은 들개(경공)를 파훼하지만 산적(외공)에게는 평타다.
+    const { root } = mount(twoEnemies('gyeong', 'wai'));
+    const aoe = root.querySelector('.hand-slot[data-uid="c4"]')!;
+    const badge = aoe.querySelector('.card-mu')!;
+    expect(badge.classList.contains('mu-mixed')).toBe(true);
+    expect(badge.classList.contains('mu-break')).toBe(false);
+
+    const label = aoe.getAttribute('aria-label') ?? '';
+    expect(label).toContain('들개 파훼');
+    expect(label).toContain('산적 평타');
+    // 카드 설명문 자체가 "적 전체 6 피해."라서 '적 전체'만으로는 못 가른다.
+    // 단정하는 문구(적 전체 <판정>)가 없어야 한다.
+    expect(label).not.toContain('적 전체 파훼');
+  });
+
+  it('하나를 겨누는 초식은 갈림이 아니라 초점 적 기준으로 적는다', () => {
+    const { root } = mount(twoEnemies('gyeong', 'wai'));
+    const single = root.querySelector('.hand-slot[data-uid="c0"]')!; // 벽타, 적 하나
+    expect(single.querySelector('.card-mu')!.classList.contains('mu-break')).toBe(true);
+    expect(single.getAttribute('aria-label')).toContain('들개 기준 파훼');
+  });
+
+  it('맞는 적이 전부 평타면 아무 도장도 붙이지 않는다', () => {
+    const { root } = mount(twoEnemies('wai', 'wai'));
+    expect(root.querySelector('.hand-slot[data-uid="c4"]')!.querySelector('.card-mu')).toBeNull();
+  });
+});
+
 describe('전투 화면 — 접근성', () => {
   it('카드 이름표에 이름·계열·내공·설명이 순서대로 들어간다', () => {
     const { root } = mount(makeCombat(['deulgae']));
@@ -219,6 +270,40 @@ describe('전투 화면 — 접근성', () => {
     const label = root.querySelector('.intent')!.getAttribute('aria-label');
     expect(label).toBe('다음 행동: 물어뜯기, 공격 6 2회, 경공');
     expect(root.querySelector('.intent-value')!.textContent).toBe('6 ×2');
+  });
+
+  it('적 이름표가 그 적이 나를 어떻게 치는지도 읽는다', () => {
+    // 눈으로는 의도 옆 상성 도장으로 보이는 정보다. 자세 띠는 초점 적 하나만
+    // 다루므로, 이름표에 없으면 스크린리더 사용자는 나머지 적의 방어 판정을 잃는다.
+    const combat = makeCombat(['deulgae', 'sanjeok']);
+    const enemies = [
+      {
+        ...combat.enemies[0]!, stance: 'gyeong' as const,
+        intent: { actionId: 'mul', kind: 'attack' as const, line: 'gyeong' as const, value: 6, hits: 1, label: '물어뜯기' },
+      },
+      {
+        ...combat.enemies[1]!, stance: 'wai' as const,
+        intent: { actionId: 'hwidu', kind: 'attack' as const, line: 'wai' as const, value: 8, hits: 1, label: '휘두르기' },
+      },
+    ];
+    const { root } = mount({ ...combat, enemies });
+    const labels = [...root.querySelectorAll('.enemy[data-hp]')].map((e) => e.getAttribute('aria-label') ?? '');
+
+    // 내 자세는 외공. 경공이 외공을 치면 저항, 외공이 외공을 치면 평타.
+    expect(labels[0]).toContain('이 적이 경공으로 치면 내가 저항');
+    expect(labels[1]).toContain('이 적이 외공으로 치면 내가 평타');
+    // 초점이 아닌 적도 반드시 갖는다.
+    expect(labels.every((l) => l.includes('이 적이'))).toBe(true);
+  });
+
+  it('공격이 아닌 의도에는 방어 판정을 붙이지 않는다', () => {
+    const combat = makeCombat(['deulgae']);
+    const enemy = {
+      ...combat.enemies[0]!,
+      intent: { actionId: 'uleum', kind: 'buff' as const, line: 'sul' as const, value: 1, hits: 1, label: '울부짖기' },
+    };
+    const { root } = mount({ ...combat, enemies: [enemy] });
+    expect(root.querySelector('.enemy[data-hp]')!.getAttribute('aria-label')).not.toContain('이 적이');
   });
 
   it('체력·호신강기 막대가 meter 값을 모두 낸다', () => {

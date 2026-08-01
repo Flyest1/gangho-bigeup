@@ -53,6 +53,48 @@ export function renderMatchupChip(m: Matchup): HTMLElement {
   return chip;
 }
 
+export interface VerdictSummary {
+  /** none = 볼 것 없음(전부 평타), uniform = 맞는 적 전부 같은 판정, mixed = 갈림. */
+  kind: 'none' | 'uniform' | 'mixed';
+  /** uniform 일 때의 판정. */
+  matchup: Matchup | null;
+  perEnemy: Array<{ name: string; matchup: Matchup }>;
+}
+
+/**
+ * 한 계열이 **실제로 맞는 적 전부**에 대해 어떤 판정을 내는지 요약한다.
+ *
+ * 상성은 적마다 따로 계산된다(`damageEnemy` 가 대상의 자세로 계산한다). 그래서
+ * 적 전체를 치는 초식에 초점 적 하나의 판정을 붙이면, 자세가 섞인 전투에서 화면이
+ * 거짓말을 한다 — 한쪽은 파훼인데 다른 쪽은 저항인 상황이 실제로 나온다.
+ * 표시되는 판정은 그것이 가리키는 모든 적에게 참이어야 한다.
+ */
+export function summarizeVerdict(line: Line, enemies: EnemyState[]): VerdictSummary {
+  const perEnemy = enemies.map((e) => ({ name: e.name, matchup: matchup(line, e.stance) }));
+  if (perEnemy.length === 0) return { kind: 'none', matchup: null, perEnemy };
+
+  const distinct = new Set(perEnemy.map((p) => p.matchup));
+  const first = perEnemy[0]!.matchup;
+  if (distinct.size === 1) {
+    return first === 'neutral'
+      ? { kind: 'none', matchup: 'neutral', perEnemy }
+      : { kind: 'uniform', matchup: first, perEnemy };
+  }
+  return { kind: 'mixed', matchup: null, perEnemy };
+}
+
+/** 요약을 스크린리더용 문장으로. 적이 여럿이면 어느 적이 무엇인지 다 읽는다. */
+export function verdictAriaText(summary: VerdictSummary): string {
+  if (summary.kind === 'none') return '';
+  if (summary.kind === 'uniform' && summary.matchup) {
+    const name = MATCHUP_LABEL[summary.matchup].name;
+    return summary.perEnemy.length > 1
+      ? `적 전체 ${name}`
+      : `${summary.perEnemy[0]!.name} 기준 ${name}`;
+  }
+  return summary.perEnemy.map((p) => `${p.name} ${MATCHUP_LABEL[p.matchup].name}`).join(' · ');
+}
+
 const CONSEQUENCE: Record<Matchup, string> = {
   break: '호신강기를 뚫는다',
   neutral: '그대로 들어간다',

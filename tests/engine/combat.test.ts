@@ -232,6 +232,38 @@ describe('불변성과 재현성', () => {
   });
 });
 
+describe('적 공격에 실리는 공격자 상태', () => {
+  // 자세는 경공으로 맞춰 상성 배율을 1배로 고정한다. 허수아비의 찌르기도 경공이라
+  // 상성이 평타가 되어, 남는 변수는 공격자 상태뿐이다.
+  function attackedWith(status: CombatState['enemies'][number]['status']): CombatState {
+    const s = startCombat(setup({
+      player: { hp: 80, maxHp: 80, maxQi: 3, stance: 'gyeong', relics: [] },
+    }), content);
+    const armed: CombatState = { ...s, enemies: s.enemies.map((e) => ({ ...e, status })) };
+    return applyAction(armed, { type: 'endTurn' }, content);
+  }
+
+  it('상태가 없으면 표시된 수치 그대로 들어온다', () => {
+    expect(attackedWith({}).player.hp).toBe(75); // 80 − 5
+  });
+
+  it('적의 기세가 적의 피해를 올린다', () => {
+    // 5 + 기세 3 = 8. 비워두면(회귀) 5 가 되어 75 가 나온다.
+    expect(attackedWith({ momentum: 3 }).player.hp).toBe(72);
+  });
+
+  it('적에게 건 쇠약이 적의 피해를 내린다', () => {
+    // 적 턴 시작에 tickStatus 가 쇠약을 1 깎으므로 2 를 걸어야 때릴 때 1 이 남는다.
+    // floor(5 × 0.75) = 3. 비워두면(회귀) 5 가 되어 75 가 나온다.
+    expect(attackedWith({ weak: 2 }).player.hp).toBe(77);
+  });
+
+  it('기세와 쇠약이 함께 있으면 둘 다 실린다', () => {
+    // (5 + 3) → 쇠약 floor(8 × 0.75) = 6.
+    expect(attackedWith({ momentum: 3, weak: 2 }).player.hp).toBe(74);
+  });
+});
+
 describe('강화', () => {
   it('effectiveCard는 강화 효과로 대체한다', () => {
     const base = content.card('bangsin');

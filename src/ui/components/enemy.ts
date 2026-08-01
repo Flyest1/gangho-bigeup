@@ -122,6 +122,13 @@ export function renderEnemy(enemy: EnemyState, opts: EnemyOpts): HTMLElement {
     parts.push(`내 ${LINE_LABEL[opts.playerStance].name}으로 치면 ${MATCHUP_LABEL[matchup(opts.playerStance, enemy.stance)].name}`);
   }
   if (enemy.intent) parts.push(intentAriaLabel(enemy.intent));
+  // 눈으로 보는 사람은 의도 옆의 상성 도장으로 이 적이 나를 어떻게 치는지 안다.
+  // 그 판정이 이름표에도 실려야 한다 — 자세는 공격만큼이나 방어를 좌우하고,
+  // 없으면 스크린리더 사용자는 자세 띠에 잡히는 초점 적 하나만 알게 된다.
+  if (opts.playerStance && enemy.intent && enemy.intent.kind === 'attack') {
+    const incoming = matchup(enemy.intent.line, opts.playerStance);
+    parts.push(`이 적이 ${LINE_LABEL[enemy.intent.line].name}으로 치면 내가 ${MATCHUP_LABEL[incoming].name}`);
+  }
   parts.push(opts.targetable ? '탭하면 이 적에게 초식을 쓴다' : '탭하면 이 적을 견준다');
 
   node.setAttribute('aria-label', parts.join(', '));

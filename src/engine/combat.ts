@@ -112,7 +112,12 @@ function applyEnemyEffects(
     switch (atom.op) {
       case 'damage': {
         const hits = atom.hits ?? 1;
-        for (let i = 0; i < hits; i++) s = damagePlayer(s, atom.value, line);
+        for (let i = 0; i < hits; i++) {
+          // 매 타격마다 공격자를 다시 읽는다. s 는 타격마다 새 객체로 바뀌므로
+          // 밖에서 한 번 잡아두면 그 사이에 바뀐 상태(예: 잔상 소모)를 놓친다.
+          const attacker = s.enemies.find((e) => e.uid === enemyUid);
+          s = damagePlayer(s, atom.value, line, { attackerStatus: attacker?.status ?? {} });
+        }
         break;
       }
       case 'block':
