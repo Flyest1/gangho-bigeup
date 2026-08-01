@@ -4603,95 +4603,71 @@ git commit -m "엔진: 저장 직렬화와 구획별 손상 격리"
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import ts from 'typescript';
 
 // new URL(...).pathname 은 Windows 에서 `/C:/...` 를 내놓아 경로가 깨진다.
-// fileURLToPath 는 두 플랫폼에서 모두 올바른 경로를 준다.
 const ENGINE = fileURLToPath(new URL('../src/engine/', import.meta.url));
-const BANNED = [
-  { re: /\bdocument\b/, why: 'document 참조' },
-  { re: /\bwindow\b/, why: 'window 참조' },
-  { re: /\blocalStorage\b/, why: 'localStorage 참조' },
-  { re: /\bnavigator\b/, why: 'navigator 참조' },
-  { re: /Math\.random\s*\(/, why: 'Math.random 직접 호출' },
-];
+
 /**
- * 예외는 줄 단위 표식으로만 낸다. 파일 단위로 규칙을 끄면 같은 파일에 두 번째
- * 위반이 들어와도 조용히 통과한다. 표식 총 개수도 아래에서 못박는다.
+ * 주석과 문자열을 손으로 걷어내려는 시도를 세 번 했고 세 번 다 같은 방향으로
+ * 실패했다. 정규식, 줄 단위 스캐너, 파일 단위 상태 기계 — 매번 실제 코드를
+ * 주석으로 오인해 위반을 삼켰고, 매번 더 좁은 입구로 다시 뚫렸다
+ * (`"a//b"`, 여러 줄 템플릿 리터럴, `${}` 안의 중첩 템플릿).
+ *
+ * 그래서 직접 파싱하지 않는다. typescript 는 이미 devDependency 이고 바로 이
+ * 파일들을 컴파일한다. 진짜 파서를 태우면 주석은 AST 에 아예 없고 문자열
+ * 리터럴은 식별자가 아니므로, 이 부류의 누수가 구조적으로 불가능해진다.
  */
+const BANNED_GLOBALS = new Set(['document', 'window', 'localStorage', 'navigator']);
+
 const ALLOW_MARK = 'purity-allow';
 const ALLOW_LIMIT = 1;
 
-/**
- * 주석을 지운 사본을 만든다. 줄 번호를 유지해야 하므로 블록 주석은 공백으로 덮는다.
- * 앞서 `*` 로 시작하는 줄을 통째로 건너뛰던 방식은 여러 줄에 걸친 곱셈식
- * (`base` 다음 줄이 `* window.innerWidth`) 을 주석으로 오인해 실제 위반을 놓쳤다.
- */
-/**
- * 소스에서 주석만 지운다. 문자열·템플릿 리터럴 안의 `//` 와 `/*` 는 건드리지 않고,
- * 템플릿 리터럴은 여러 줄에 걸치므로 상태를 줄 경계 너머로 이어간다. 줄 번호를
- * 유지해야 하므로 지운 자리는 같은 길이의 공백으로 채우고 개행만 남긴다.
- *
- * 정규식으로도, 줄 단위 스캔으로도 이 일은 되지 않는다. 둘 다 시도했고 둘 다
- * 실제 위반을 주석으로 오인해 삼켰다 — 가드가 위반을 못 보는 방향으로 실패한다.
- * 알려진 한계: 정규식 리터럴 안의 `//` 는 여전히 주석으로 읽힌다. 현재 엔진에는
- * 정규식 리터럴이 없다.
- */
-function stripComments(src) {
-  let out = '';
-  let mode = 'code'; // 'code' | 'line' | 'block' | 'quote'
-  let quote = null;
-
-  for (let i = 0; i < src.length; i++) {
-    const c = src[i];
-    const next = src[i + 1];
-
-    if (mode === 'line') {
-      if (c === '\n') { out += '\n'; mode = 'code'; } else out += ' ';
-      continue;
-    }
-    if (mode === 'block') {
-      if (c === '*' && next === '/') { out += '  '; i++; mode = 'code'; }
-      else out += c === '\n' ? '\n' : ' ';
-      continue;
-    }
-    if (mode === 'quote') {
-      out += c;
-      if (c === '\\' && next !== undefined) { out += next; i++; continue; }
-      if (c === quote) { mode = 'code'; quote = null; }
-      continue;
-    }
-
-    if (c === '/' && next === '/') { out += '  '; i++; mode = 'line'; continue; }
-    if (c === '/' && next === '*') { out += '  '; i++; mode = 'block'; continue; }
-    if (c === '"' || c === "'" || c === '`') { out += c; mode = 'quote'; quote = c; continue; }
-    out += c;
-  }
-
-  return out;
-}
-
 const problems = [];
-let allowCount = 0;
+const markedLines = new Set();
 
 for (const name of readdirSync(ENGINE)) {
   if (!name.endsWith('.ts')) continue;
-  const raw = readFileSync(join(ENGINE, name), 'utf8');
-  const rawLines = raw.split('\n');
-  stripComments(raw).split('\n').forEach((line, i) => {
-    let marked = false;
-    for (const { re, why } of BANNED) {
-      if (!re.test(line)) continue;
-      // 표식은 줄당 한 번만 센다. 한 줄이 규칙 두 개에 걸린다고 허용치를 두 번
-      // 깎으면, 정당한 예외 하나짜리 파일이 헛되이 검사에 걸린다.
-      if (rawLines[i]?.includes(ALLOW_MARK)) { marked = true; continue; }
-      problems.push(`src/engine/${name}:${i + 1} — ${why}`);
+
+  const source = readFileSync(join(ENGINE, name), 'utf8');
+  const sf = ts.createSourceFile(name, source, ts.ScriptTarget.ES2022, true);
+  const lines = source.split('
+');
+
+  const report = (node, why) => {
+    const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf));
+    if (lines[line]?.includes(ALLOW_MARK)) {
+      markedLines.add(`${name}:${line}`);
+      return;
     }
-    if (marked) allowCount++;
-  });
+    problems.push(`src/engine/${name}:${line + 1} — ${why}`);
+  };
+
+  const visit = (node) => {
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === 'Math' &&
+      node.name.text === 'random'
+    ) {
+      report(node, 'Math.random 직접 호출');
+    }
+
+    // 이 이름이 붙은 식별자는 위치를 가리지 않고 전부 잡는다. 속성 접근
+    // (`globalThis.document`) 도, 선언 (`const window = ...`) 도 엔진에서는
+    // 정당한 쓰임이 없다. 넓게 잡아 오탐하는 쪽이 놓치는 쪽보다 낫다.
+    if (ts.isIdentifier(node) && BANNED_GLOBALS.has(node.text)) {
+      report(node, `${node.text} 참조`);
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sf);
 }
 
-if (allowCount > ALLOW_LIMIT) {
-  problems.push(`${ALLOW_MARK} 표식이 ${allowCount}개다. 허용치는 ${ALLOW_LIMIT}개뿐이다`);
+if (markedLines.size > ALLOW_LIMIT) {
+  problems.push(`${ALLOW_MARK} 표식이 ${markedLines.size}개다. 허용치는 ${ALLOW_LIMIT}개뿐이다`);
 }
 
 if (problems.length) {
