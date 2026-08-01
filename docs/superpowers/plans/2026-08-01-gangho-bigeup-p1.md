@@ -2015,7 +2015,7 @@ export function findAction(def: EnemyDef, actionId: string): EnemyAction | undef
 - [ ] **Step 4: 테스트가 통과하는지 확인**
 
 Run: `npx vitest run tests/engine/enemies.test.ts`
-Expected: PASS — 9 tests
+Expected: PASS — 8 tests
 
 - [ ] **Step 5: 커밋**
 
