@@ -12,6 +12,8 @@ const OPS = new Set(['damage', 'block', 'draw', 'gainQi', 'heal', 'applyStatus',
   'ifCombo', 'ifBreak', 'keepBlock', 'loseBlock', 'counterStance']);
 const STATUSES = new Set(['poison', 'naesang', 'vulnerable', 'weak', 'momentum', 'afterimage']);
 const LINES = new Set(['wai', 'gyeong', 'nae', 'sul']);
+const STANCES = new Set(['wai', 'gyeong', 'nae']);
+const VALUE_OPS = new Set(['damage', 'block', 'draw', 'gainQi', 'heal', 'applyStatus']);
 const RARITIES = new Set(['basic', 'common', 'rare', 'ultra']);
 const MOD_KEYS = new Set(['maxHp', 'maxQi', 'handSize', 'startBlock', 'comboThreshold']);
 // applyEnemyEffects 가 명시적으로 무시하는 원자들. 적 행동 데이터에서 금지한다.
@@ -26,6 +28,15 @@ function checkEffects(where, atoms) {
   for (const a of atoms) {
     if (!OPS.has(a.op)) fail(`${where}: 알 수 없는 효과 ${a.op}`);
     if (a.op === 'applyStatus' && !STATUSES.has(a.status)) fail(`${where}: 알 수 없는 상태 ${a.status}`);
+    // JSON 은 `as unknown as CardDef[]` 로 들어오므로 타입 수준 금지가 통하지 않는다.
+    // damage 에 self 를 쓰면 resolveTargets 가 적 선택으로 흘려보내 조용히 적을 때린다.
+    if (a.op === 'damage' && a.target === 'self') fail(`${where}: damage 는 target:self 를 지원하지 않는다`);
+    // 값이나 분기 배열이 빠진 원자는 런타임에 조용히 아무 일도 하지 않는다.
+    if (VALUE_OPS.has(a.op) && typeof a.value !== 'number') fail(`${where}: ${a.op} 에 숫자 value 가 없다`);
+    if (a.op === 'ifCombo' && typeof a.min !== 'number') fail(`${where}: ifCombo 에 숫자 min 이 없다`);
+    if ((a.op === 'ifCombo' || a.op === 'ifBreak') && !Array.isArray(a.then)) {
+      fail(`${where}: ${a.op} 에 then 배열이 없다`);
+    }
     if (a.then) checkEffects(where, a.then);
   }
 }
@@ -73,6 +84,7 @@ for (const e of enemies) {
   enemyIds.add(e.id);
   if (!Array.isArray(e.hp) || e.hp.length !== 2 || e.hp[0] > e.hp[1]) fail(`${e.id}: 체력 범위 이상`);
   if (!['normal', 'elite', 'boss'].includes(e.tier)) fail(`${e.id}: 잘못된 등급`);
+  if (!STANCES.has(e.startStance)) fail(`${e.id}: 잘못된 초기 자세 ${e.startStance}`);
   if (![1, 2, 3].includes(e.act)) fail(`${e.id}: 잘못된 막`);
   if (!e.actions?.length) fail(`${e.id}: 행동 없음`);
   for (const a of e.actions ?? []) {
