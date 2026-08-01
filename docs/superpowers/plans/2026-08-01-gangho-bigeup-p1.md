@@ -2365,6 +2365,8 @@ export function startCombat(setup: CombatSetup, content: ContentIndex): CombatSt
     intent: chooseIntent(content.enemy(e.defId), e, rng),
   }));
 
+  const draw = rng.shuffle(setup.deck);
+
   const state: CombatState = {
     rngState: rng.state,
     turn: 0,
@@ -2380,7 +2382,7 @@ export function startCombat(setup: CombatSetup, content: ContentIndex): CombatSt
       relics: [...setup.player.relics],
     },
     enemies: withIntent,
-    draw: new Rng(rng.state).shuffle(setup.deck),
+    draw,
     hand: [],
     discard: [],
     exhaust: [],
@@ -2390,9 +2392,7 @@ export function startCombat(setup: CombatSetup, content: ContentIndex): CombatSt
     log: [],
   };
 
-  const shuffled = new Rng(rng.state);
-  shuffled.shuffle(setup.deck);
-  return beginPlayerTurn({ ...state, rngState: shuffled.state });
+  return beginPlayerTurn(state);
 }
 
 function beginPlayerTurn(state: CombatState): CombatState {
@@ -2850,9 +2850,7 @@ import { relicMods, triggerRelics } from './relics';
     handSize: (setup.handSize ?? 5) + mods.handSize,
 
 // startCombat 마지막 반환을 교체
-  const shuffled = new Rng(rng.state);
-  shuffled.shuffle(setup.deck);
-  const seeded = triggerRelics({ ...state, rngState: shuffled.state }, 'onCombatStart', content);
+  const seeded = triggerRelics(state, 'onCombatStart', content);
   return beginPlayerTurn(seeded, content);
 
 // beginPlayerTurn 시그니처와 본문 변경
@@ -3040,12 +3038,13 @@ git commit -m "엔진: 기물 시스템. 패시브 보정과 훅 트리거"
 | hwasan_geomgaek | 화산 검객 | 3 | normal | 34–38 | wai | maehwa(wai,3,damage 15) · geommak(nae,2,block 12) |
 | myeonggyo_haenja | 명교 행자 | 3 | normal | 32–36 | nae | yeolhwa(nae,3,damage 13·poison 2) · hoche(nae,2,block 11) |
 | seosang_musa | 서역 무사 | 3 | normal | 36–40 | gyeong | yeonhwan(gyeong,3,damage 7 hits 3) · doyak(sul,2,momentum 2 self) |
+| gollyun_geomsa | 곤륜 검사 | 3 | normal | 30–34 | gyeong | sokgeom(gyeong,3,damage 8 hits 2) · hansol(nae,2,block 13) |
 | sorim_bulgye | 소림 계율승 | 3 | elite | 72–80 | nae | geumgang(nae,3,damage 19) · budong(nae,2,block 20) · sajahu(wai,2,damage 12·vulnerable 2) |
 | maechopung | 매초풍 | 1 | boss | 96–96 | gyeong | gujeum(gyeong,3,damage 9 hits 2) · baekgol(wai,2,damage 17·vulnerable 2) · yeonmu(sul,1,momentum 3 self) |
 | guchunin | 구천인 | 2 | boss | 132–132 | wai | cheolgak(wai,3,damage 20) · yeoncheol(nae,2,block 18·momentum 2 self) · ssanggyeok(wai,2,damage 11 hits 2) |
 | guyangbong | 구양봉 | 3 | boss | 178–178 | nae | hamamgong(nae,3,damage 24) · sadok(sul,2,poison 5·weak 2) · yeokhaeng(wai,2,damage 14 hits 2·naesang 2) |
 
-보스가 3명이므로 표의 항목은 총 17개이고, 그중 일반·정예가 14종, 보스가 3종이다.
+표의 항목은 총 18개다. 막마다 일반 4종 · 정예 1종 · 보스 1종이며 (`4+1+1` × 3막), 검증기와 테스트가 이 구성을 강제한다.
 
 ### 문파 정의
 
@@ -3154,6 +3153,12 @@ describe('콘텐츠 분량', () => {
 
   it('기물이 20종이다', () => {
     expect(CONTENT.relics()).toHaveLength(20);
+  });
+
+  it('적이 18종이다', () => {
+    const all = [1, 2, 3].flatMap((act) =>
+      (['normal', 'elite', 'boss'] as const).flatMap((tier) => CONTENT.enemiesOf(act, tier)));
+    expect(all).toHaveLength(18);
   });
 
   it('막마다 일반 적 4종·정예 1종·보스 1종이 있다', () => {
@@ -3628,14 +3633,13 @@ export function generateMap(rng: Rng, act: number): GameMap {
     for (const id of layers[layer]!) {
       const node = nodes[id]!;
       const parents = Object.values(nodes).filter((n) => n.next.includes(id));
-      let type: NodeType = 'battle';
-      for (let attempt = 0; attempt < 12; attempt++) {
-        type = rng.weighted(MIDDLE_WEIGHTS);
-        if (!wouldTriple(type, layer, parents, nodes)) break;
-        type = 'battle';
-        if (!wouldTriple('battle', layer, parents, nodes)) break;
-        type = 'elite';
-        if (!wouldTriple('elite', layer, parents, nodes)) break;
+      const safe = (t: NodeType): boolean => !wouldTriple(t, layer, parents, nodes);
+
+      // 노드마다 정확히 한 번만 추첨한다. 3연속이 되면 안전한 타입 중 첫 번째로 대체한다.
+      // 후보가 넷이고 앞선 경로는 최대 둘이므로 안전한 타입은 반드시 존재한다.
+      let type = rng.weighted(MIDDLE_WEIGHTS);
+      if (!safe(type)) {
+        type = (['battle', 'elite', 'rest', 'shop'] as NodeType[]).find(safe) ?? 'battle';
       }
       node.type = type;
     }
@@ -3835,20 +3839,21 @@ describe('객잔', () => {
 });
 
 describe('장터', () => {
-  function toShop(gold = 500): RunState {
-    const r = run0();
-    return applyRunAction(
-      { ...r, player: { ...r.player, gold }, currentNodeId: r.map.layers[0]![0]! },
-      { type: 'chooseNode', nodeId: r.map.layers[0]![0]! },
-      CONTENT,
-    );
-  }
+  it('장터 노드에 들어가면 초식 3·기물 1·제거 1이 진열된다', () => {
+    for (let i = 0; i < 300; i++) {
+      const r = startRun(`장터${i}`, CONTENT);
+      const first = r.map.layers[0]![0]!;
+      const shopId = nodeAt(r.map, first).next.find((id) => nodeAt(r.map, id).type === 'shop');
+      if (!shopId) continue;
 
-  it('장터 진열은 초식 3·기물 1·제거 1이다', () => {
-    const r = run0();
-    const shopRun: RunState = { ...r, screen: 'shop', shop: null, player: { ...r.player, gold: 500 } };
-    const opened = applyRunAction({ ...shopRun, screen: 'map', currentNodeId: null }, { type: 'leave' }, CONTENT);
-    expect(opened.screen).toBe('map');
+      const s = applyRunAction({ ...r, currentNodeId: first }, { type: 'chooseNode', nodeId: shopId }, CONTENT);
+      expect(s.screen).toBe('shop');
+      expect(s.shop!.filter((x) => x.kind === 'card')).toHaveLength(3);
+      expect(s.shop!.filter((x) => x.kind === 'relic')).toHaveLength(1);
+      expect(s.shop!.filter((x) => x.kind === 'remove')).toHaveLength(1);
+      return;
+    }
+    throw new Error('300개 시드에서 1층 장터를 찾지 못했다');
   });
 
   it('구매하면 엽전이 줄고 물건이 사라진다', () => {
