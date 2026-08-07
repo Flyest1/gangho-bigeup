@@ -10,6 +10,7 @@ import { CONTENT } from '../../engine/gamedata';
 import type { AppApi } from '../app';
 import { el, trapFocus } from '../dom';
 import { renderDeckList } from '../components/deckview';
+import { renderRelicStrip } from '../components/relics';
 
 const NODE_META: Record<NodeType, { icon: string; label: string }> = {
   battle: { icon: '⚔', label: '격전' },
@@ -76,7 +77,12 @@ export function renderMap(api: AppApi, run: RunState): HTMLElement {
     ]);
     const deckBtn = el('button', { class: 'btn quiet', type: 'button', textContent: '덱 보기' });
     deckBtn.addEventListener('click', onOpenDeck);
-    return el('header', { class: 'topbar map-topbar' }, [stats, deckBtn]);
+    const bar = el('header', { class: 'topbar map-topbar' }, [stats, deckBtn]);
+    // 덱은 볼 수 있는데 기물은 볼 수 없던 자리다. 다음 노드를 고르는 판단(정예를
+    // 칠지 객잔에서 쉴지)이 바로 여기서 일어나므로 기물도 같은 화면에 있어야 한다.
+    const relics = renderRelicStrip(run.player.relics);
+    if (relics) bar.append(relics);
+    return bar;
   }
 
   function deckOverlay(onClose: () => void): HTMLElement {

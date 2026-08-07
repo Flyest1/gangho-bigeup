@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#141110" />
+    <!-- iOS 는 매니페스트의 icons 를 홈 화면 아이콘으로 쓰지 않는다. 이 링크가
+         없으면 사이트 루트의 /apple-touch-icon.png 를 찾는데, 이 앱은
+         /gangho-bigeup/ 아래 있어 영영 못 찾는다. base 접두사는 Vite 가 붙인다. -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>강호비급 — 무명행</title>
   </head>
   <body>

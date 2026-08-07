@@ -90,3 +90,65 @@ test('턴 종료로 적이 행동하고 다음 턴이 온다', async ({ page }) 
   await page.getByRole('button', { name: '턴 종료' }).click();
   await expect(page.locator('.turn-indicator')).toContainText('2');
 });
+
+test('좁은 화면에서 알림이 쌓여도 손패가 뭉개지지 않는다', async ({ page }) => {
+  // 360x640에서 알림 세 개(오프라인 준비·격리·저장 실패)가 함께 뜨면 손패 줄이
+  // ~19px로 눌린다는 지적이 있었다. layout.css는 "전투 화면은 적 열이 그 축소를
+  // 흡수한다"고 이미 선언해 두었지만, 그렇게 만드는 규칙은 어디에도 없었다.
+  // 여기서 재는 것은 그 선언 그대로다 — 알림이 생겨도 손패 높이가 줄지 않는다.
+  await page.setViewportSize({ width: 360, height: 640 });
+  await page.goto('/');
+  await page.getByRole('textbox', { name: '시드' }).fill('좁은화면');
+  await page.getByRole('button', { name: '새로운 강호행' }).click();
+  await page.getByRole('button', { name: /격전/ }).first().click();
+  await expect(page.locator('.hand .card').first()).toBeVisible();
+
+  const handHeight = async (): Promise<number> => {
+    const box = await page.locator('.combat .hand').boundingBox();
+    if (!box) throw new Error('손패 줄을 찾지 못했다');
+    return box.height;
+  };
+
+  const before = await handHeight();
+  expect(before).toBeGreaterThan(100); // 카드가 실제로 보이는 높이인지부터 확인
+
+  // 알림 세 개를 실제 알림 자리에 얹는다. 출처(PWA 배너·격리·저장 실패)는
+  // 레이아웃에 아무 영향이 없으므로 같은 모양의 요소를 직접 넣어도 같은 상황이다.
+  await page.evaluate(() => {
+    const host = document.querySelector('.notice-stack');
+    if (!host) throw new Error('알림 자리가 없다');
+    for (const text of ['오프라인 준비 완료', '저장 기록 일부가 손상되어 격리했습니다', '저장에 실패했습니다']) {
+      const box = document.createElement('div');
+      box.className = 'notice';
+      box.textContent = text;
+      host.append(box);
+    }
+  });
+  await expect(page.locator('.notice')).toHaveCount(3);
+
+  expect(await handHeight()).toBe(before);
+});
+
+test('탭 두 개를 열면 먼저 열린 탭이 저장을 멈추고 그 사실을 알린다', async ({ page, context }) => {
+  // 검증에서 관찰한 그대로를 진짜 브라우저 두 탭으로 재현한다. happy-dom 테스트는
+  // storage 이벤트를 손으로 만들어 쏘지만, 여기서는 브라우저가 실제로 보낸다.
+  await page.goto('/');
+  await page.getByRole('textbox', { name: '시드' }).fill('탭A');
+  await page.getByRole('button', { name: '새로운 강호행' }).click();
+  await expect(page.locator('.map')).toBeVisible();
+
+  const second = await context.newPage();
+  await second.goto('/');
+  await expect(second.locator('.map')).toBeVisible(); // 같은 판을 이어받는다
+
+  // 먼저 열린 탭이 소유권을 잃었다고 말한다. `.notice`만 보면 PWA 배너
+  // (오프라인 준비 완료)가 같은 클래스로 먼저 잡히므로 앱이 얹는 몫만 겨눈다.
+  await expect(page.locator('.notice-own')).toContainText('다른 탭');
+
+  // 되찾으면 알림이 사라지고, 이번엔 나중에 연 탭이 소유권을 잃는다.
+  await page.getByRole('button', { name: '이 탭에서 이어하기' }).click();
+  await expect(page.locator('.notice-own')).toHaveCount(0);
+  await expect(second.locator('.notice-own')).toContainText('다른 탭');
+
+  await second.close();
+});

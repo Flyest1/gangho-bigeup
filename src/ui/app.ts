@@ -2,6 +2,7 @@ import { CONTENT } from '../engine/gamedata';
 import { applyRunAction, startRun, type RunAction, type RunState } from '../engine/run';
 import { recordRunEnd, type SaveData } from '../engine/save';
 import { randomSeedText } from '../engine/rng';
+import { createSessionGuard } from '../platform/session';
 import { loadSave, persistSave } from '../platform/storage';
 import { noticeHost } from './dom';
 import { renderTitle } from './screens/title';
@@ -17,6 +18,8 @@ export interface AppState {
   view: 'title' | 'run';
   notice: string | null;
   saveNotice: string | null;
+  /** 다른 탭이 이 판을 이어받아 이 탭의 저장이 멈춘 상태. */
+  tabConflict: boolean;
 }
 
 export interface AppApi {
@@ -26,13 +29,18 @@ export interface AppApi {
   resume(): void;
   dismissNotice(): void;
   dismissSaveNotice(): void;
+  /** 다른 탭에 넘어간 저장 소유권을 이 탭으로 되찾는다. */
+  reclaimTab(): void;
   getState(): AppState;
 }
 
 const SAVE_FAILED_NOTICE =
   '저장에 실패했습니다. 비공개 모드이거나 저장 공간이 가득 찬 것 같습니다. 이 판은 이어서 할 수 없습니다.';
 
-export function mountApp(root: HTMLElement): void {
+const TAB_CONFLICT_NOTICE =
+  '다른 탭에서 이 판을 이어받았습니다. 이 탭의 진행은 저장되지 않습니다.';
+
+export function mountApp(root: HTMLElement): AppApi {
   const loaded = loadSave();
   const state: AppState = {
     save: loaded.save,
@@ -41,7 +49,18 @@ export function mountApp(root: HTMLElement): void {
       ? `저장 기록 일부가 손상되어 격리했습니다 (${loaded.quarantined.join(', ')}). 나머지는 그대로 이어집니다.`
       : null,
     saveNotice: null,
+    tabConflict: false,
   };
+
+  // 이 탭이 저장을 쥔다. 다른 탭이 뒤이어 열리면 그쪽이 쥐고, 이쪽은 onConflict 로
+  // 알게 된다 — 그때부터 이 탭은 저장하지 않는다(아래 commit 참조).
+  const session = createSessionGuard({
+    onConflict: () => {
+      state.tabConflict = true;
+      render();
+    },
+  });
+  session.claim();
 
   // 저장 실패를 이미 알렸는지 추적한다. persistSave가 계속 실패하는 동안(같은 고장)
   // commit마다 다시 알리면, 플레이어가 알림을 닫아도 다음 행동에서 바로 되살아나
@@ -61,6 +80,14 @@ export function mountApp(root: HTMLElement): void {
       save = { ...save, meta: recordRunEnd(save.meta, run) };
     }
     state.save = save;
+
+    // 소유권을 잃은 탭은 화면만 계속 돌린다. 여기서 쓰면 상대 탭이 이미 진행한
+    // 판을 이 탭의 낡은 상태로 덮어쓴다 — 그게 원래 문제였다.
+    if (!session.owns()) {
+      render();
+      return;
+    }
+
     const ok = persistSave(save);
     if (ok) {
       saveBroken = false;
@@ -100,6 +127,16 @@ export function mountApp(root: HTMLElement): void {
       state.saveNotice = null;
       render();
     },
+    reclaimTab() {
+      // 저장소에서 다시 읽는 것이 이 동작의 핵심이다. 메모리에 든 낡은 상태를
+      // 그대로 다시 쓰면, 되찾는 순간 상대 탭이 그동안 진행한 것을 통째로 덮는다.
+      const fresh = loadSave();
+      state.save = fresh.save;
+      state.view = fresh.save.run && fresh.save.run.result === 'ongoing' ? 'run' : 'title';
+      state.tabConflict = false;
+      session.claim();
+      render();
+    },
     getState: () => state,
   };
 
@@ -133,25 +170,57 @@ export function mountApp(root: HTMLElement): void {
     // host는 PWA 배너와 공유하는 자리라, 우리 몫(.notice-own)만 지우고 다시 쌓는다 —
     // 다른 출처가 얹어 둔 자식(예: pwa-banner)은 손대지 않는다.
     host.querySelectorAll('.notice-own').forEach((n) => n.remove());
-    const notices: Array<{ text: string; dismiss: () => void }> = [];
+    const notices: NoticeSpec[] = [];
     if (state.notice) notices.push({ text: state.notice, dismiss: () => api.dismissNotice() });
     if (state.saveNotice) notices.push({ text: state.saveNotice, dismiss: () => api.dismissSaveNotice() });
-    for (const n of notices) host.append(renderNotice(n.text, n.dismiss));
+    // 탭 충돌은 지나가는 사건이 아니라 계속되는 상태라 닫기 버튼을 주지 않는다.
+    // 닫을 수 있게 하면 "저장이 안 되고 있다"는 유일한 표시가 사라진다. 대신
+    // 상태 자체를 끝내는 버튼(되찾기)을 준다.
+    if (state.tabConflict) {
+      notices.push({
+        text: TAB_CONFLICT_NOTICE,
+        action: { label: '이 탭에서 이어하기', run: () => api.reclaimTab() },
+      });
+    }
+    for (const n of notices) host.append(renderNotice(n));
   }
 
   render();
+  return api;
 }
 
-function renderNotice(text: string, onDismiss: () => void): HTMLElement {
+interface NoticeSpec {
+  text: string;
+  dismiss?: () => void;
+  action?: { label: string; run: () => void };
+}
+
+function renderNotice(spec: NoticeSpec): HTMLElement {
   const box = document.createElement('div');
   box.className = 'notice notice-own';
   box.setAttribute('role', 'status');
-  box.textContent = text;
-  const close = document.createElement('button');
-  close.className = 'notice-close';
-  close.textContent = '×';
-  close.setAttribute('aria-label', '알림 닫기');
-  close.addEventListener('click', onDismiss);
-  box.append(close);
+
+  const text = document.createElement('span');
+  text.className = 'notice-text';
+  text.textContent = spec.text;
+  box.append(text);
+
+  if (spec.action) {
+    const button = document.createElement('button');
+    button.className = 'btn small notice-action';
+    button.type = 'button';
+    button.textContent = spec.action.label;
+    button.addEventListener('click', spec.action.run);
+    box.append(button);
+  }
+
+  if (spec.dismiss) {
+    const close = document.createElement('button');
+    close.className = 'notice-close';
+    close.textContent = '×';
+    close.setAttribute('aria-label', '알림 닫기');
+    close.addEventListener('click', spec.dismiss);
+    box.append(close);
+  }
   return box;
 }

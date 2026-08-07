@@ -19,6 +19,7 @@ import type { AppApi } from '../app';
 import { renderStatusBadges, renderMeter } from '../components/bars';
 import { cardAriaLabel, renderCardFace, renderCardRow } from '../components/card';
 import { renderEnemy } from '../components/enemy';
+import { renderRelicStrip } from '../components/relics';
 import {
   MATCHUP_LABEL, comboThreshold, renderLineChip, renderStanceBar, summarizeVerdict, verdictAriaText,
 } from '../components/stance';
@@ -244,31 +245,9 @@ function renderBattle(api: AppApi, run: RunState, combat: CombatState): HTMLElem
       renderStatusBadges(p.status),
     ]);
 
-    const relics = el('div', { class: 'relics' });
-    relics.setAttribute('aria-label', '기물');
-    for (const id of p.relics) {
-      let name = id;
-      let hanja = '?';
-      let text = '';
-      try {
-        const def = CONTENT.relic(id);
-        name = def.name;
-        hanja = def.hanja;
-        text = def.text;
-      } catch {
-        text = '알 수 없는 기물';
-      }
-      const chip = el('span', { class: 'relic', title: `${name} — ${text}` }, [
-        el('span', { class: 'relic-hanja', textContent: hanja }),
-        el('span', { class: 'relic-name', textContent: name }),
-      ]);
-      chip.setAttribute('role', 'img');
-      chip.setAttribute('aria-label', `기물 ${name}, ${text}`);
-      relics.append(chip);
-    }
-
     const bar = el('header', { class: 'topbar' }, [bars, meta]);
-    if (p.relics.length > 0) bar.append(relics);
+    const relics = renderRelicStrip(p.relics);
+    if (relics) bar.append(relics);
     return bar;
   }
 

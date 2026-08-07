@@ -9,6 +9,7 @@ import type { RunState, ShopItem } from '../../engine/run';
 import type { AppApi } from '../app';
 import { cardAriaLabel, renderCardFace } from '../components/card';
 import { renderDeckList } from '../components/deckview';
+import { renderRelicStrip } from '../components/relics';
 import { el, trapFocus } from '../dom';
 
 const REMOVE_ITEM = { hanja: '除', name: '초식 제거', text: '덱에서 초식 한 장을 골라 지운다.' };
@@ -16,6 +17,12 @@ const REMOVE_ITEM = { hanja: '除', name: '초식 제거', text: '덱에서 초�
 export function renderShop(api: AppApi, run: RunState): HTMLElement {
   const root = el('main', { class: 'screen shop' });
   root.append(el('h1', { textContent: '장터' }));
+
+  // 진열대에 놓인 기물과 이미 가진 기물은 다른 것이다. 중복 구매를 피하려면
+  // 둘을 나란히 볼 수 있어야 하므로, 제거 목록 분기보다 앞에 둔다(두 분기 모두
+  // 이 띠를 달고 나간다).
+  const owned = renderRelicStrip(run.player.relics);
+  if (owned) root.append(owned);
 
   const leave = el('button', { class: 'btn quiet shop-leave', type: 'button', textContent: '나가기' });
   leave.addEventListener('click', () => api.dispatch({ type: 'leave' }));

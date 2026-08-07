@@ -8,11 +8,17 @@ import { canUpgrade, restHealAmount, type RunState } from '../../engine/run';
 import { CONTENT } from '../../engine/gamedata';
 import type { AppApi } from '../app';
 import { renderDeckList } from '../components/deckview';
+import { renderRelicStrip } from '../components/relics';
 import { el, trapFocus } from '../dom';
 
 export function renderRest(api: AppApi, run: RunState): HTMLElement {
   const root = el('main', { class: 'screen rest' });
   root.append(el('h1', { textContent: '객잔' }));
+
+  // 회복량이 기물(근골 등)에 달려 있으므로, 무엇을 들고 있는지가 이 선택의
+  // 근거다. 맵과 같은 컴포넌트를 써서 화면마다 모양이 갈라지지 않게 한다.
+  const relics = renderRelicStrip(run.player.relics);
+  if (relics) root.append(relics);
 
   const heal = restHealAmount(run, CONTENT);
   const upgradeable = run.player.deck.filter((c) => canUpgrade(c, CONTENT));

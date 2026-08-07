@@ -46,7 +46,8 @@ function mount(combat: CombatState): Harness {
     resume: () => {},
     dismissNotice: () => {},
     dismissSaveNotice: () => {},
-    getState: () => ({ save: { version: 1, meta: { version: 1, runsStarted: 0, runsWon: 0, bestAct: 0, bestFloors: 0 }, run }, view: 'run', notice: null, saveNotice: null } satisfies AppState),
+    reclaimTab: () => {},
+    getState: () => ({ save: { version: 1, meta: { version: 1, runsStarted: 0, runsWon: 0, bestAct: 0, bestFloors: 0 }, run }, view: 'run', notice: null, saveNotice: null, tabConflict: false } satisfies AppState),
   };
   const root = renderCombat(api, run);
   document.body.append(root);
@@ -445,9 +446,10 @@ describe('전투 화면 — 손상 복구 (Finding 3)', () => {
       resume: () => {},
       dismissNotice: () => {},
       dismissSaveNotice: () => {},
+    reclaimTab: () => {},
       getState: () => ({
         save: { version: 1, meta: { version: 1, runsStarted: 0, runsWon: 0, bestAct: 0, bestFloors: 0 }, run },
-        view: 'run', notice: null, saveNotice: null,
+        view: 'run', notice: null, saveNotice: null, tabConflict: false,
       } satisfies AppState),
     };
     const root = renderCombat(api, run);

@@ -8,12 +8,18 @@ import { CONTENT } from '../../engine/gamedata';
 import type { RunState } from '../../engine/run';
 import type { AppApi } from '../app';
 import { cardAriaLabel, renderCardFace } from '../components/card';
+import { renderRelicStrip } from '../components/relics';
 import { el } from '../dom';
 
 export function renderReward(api: AppApi, run: RunState): HTMLElement {
   const reward = run.reward;
   const root = el('main', { class: 'screen reward' });
   root.append(el('h1', { textContent: '보상' }));
+
+  // 이미 가진 기물 띠. 아래의 `.reward-relic`(이번에 주는 기물)과는 다른 것이라
+  // 상자 모양도 클래스도 다르다 — 둘이 같아 보이면 "받은 것"과 "가진 것"이 섞인다.
+  const owned = renderRelicStrip(run.player.relics);
+  if (owned) root.append(owned);
 
   if (!reward) {
     // 도달할 수 없는 상태(run.ts 가 screen='reward' 와 reward 를 함께 세운다)지만,

@@ -22,9 +22,10 @@ function fakeApi(sent: RunAction[]): AppApi {
     resume: () => {},
     dismissNotice: () => {},
     dismissSaveNotice: () => {},
+    reclaimTab: () => {},
     getState: () => ({
       save: { version: 1, meta: { version: 1, runsStarted: 0, runsWon: 0, bestAct: 0, bestFloors: 0 }, run: null },
-      view: 'title', notice: null, saveNotice: null,
+      view: 'title', notice: null, saveNotice: null, tabConflict: false,
     } satisfies AppState),
   };
 }
@@ -112,9 +113,10 @@ describe('보상 화면', () => {
       resume: () => {},
       dismissNotice: () => {},
       dismissSaveNotice: () => {},
+      reclaimTab: () => {},
       getState: () => ({
         save: { version: 1, meta: { version: 1, runsStarted: 0, runsWon: 0, bestAct: 0, bestFloors: 0 }, run },
-        view: 'run', notice: null, saveNotice: null,
+        view: 'run', notice: null, saveNotice: null, tabConflict: false,
       } satisfies AppState),
     };
     const root = mount(renderReward(api, run));
@@ -213,5 +215,30 @@ describe('결과 화면', () => {
     expect(text).toContain('3막');        // 도달 막
     expect(text).toContain('22층');       // 층수
     expect(text).toContain('18');         // 처치
+  });
+
+  it('최종 체력이 보인다 — 완주 요약에서 빠져 있던 값', () => {
+    // 완주 기록을 공유할 때 "몇 대 맞고 넘겼는지"가 층수·처치만큼이나 그 판을
+    // 설명한다. 최대 체력은 기물(근골 등)로 늘 수 있으므로 화면이 문파 기본값을
+    // 다시 적지 않고 effectiveMaxHp를 거친다.
+    const base = startRun('결과체력UI', CONTENT);
+    const run: RunState = {
+      ...base, screen: 'result', result: 'victory',
+      player: { ...base.player, hp: 23, relics: [...base.player.relics, 'geungol'] },
+    };
+    const root = mount(renderResult(fakeApi([]), run));
+
+    const hp = root.querySelector('.result-stats')!.textContent ?? '';
+    expect(hp).toContain('23 / 88'); // 80(개방 기본) + 8(근골)
+  });
+
+  it('전멸이면 최종 체력이 0으로 적힌다', () => {
+    const base = startRun('결과전멸UI', CONTENT);
+    const run: RunState = {
+      ...base, screen: 'result', result: 'defeat',
+      player: { ...base.player, hp: 0 },
+    };
+    const root = mount(renderResult(fakeApi([]), run));
+    expect(root.querySelector('.result-stats')!.textContent).toContain('0 / 80');
   });
 });

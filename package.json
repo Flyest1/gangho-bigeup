@@ -15,7 +15,8 @@
     "validate": "node tools/validate_data.mjs",
     "check:purity": "node tools/check_engine_purity.mjs",
     "verify:build": "node tools/verify_build.mjs",
-    "balance": "vite-node tools/balance_sim.ts"
+    "balance": "vite-node tools/balance_sim.ts",
+    "icons": "node tools/make_maskable_icon.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

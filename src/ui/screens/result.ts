@@ -3,7 +3,8 @@
 // 완주/전멸 요약. 클립보드 복사는 브라우저 API 이므로 실패(비보안 컨텍스트,
 // 권한 거부 등)를 사용자에게 알리지 않고 그냥 넘어간다 — 시드는 다시 화면에도
 // 적혀 있어 복사가 안 되어도 눈으로 옮겨 적을 길은 남는다.
-import type { RunState } from '../../engine/run';
+import { effectiveMaxHp, type RunState } from '../../engine/run';
+import { CONTENT } from '../../engine/gamedata';
 import type { AppApi } from '../app';
 import { el } from '../dom';
 
@@ -19,6 +20,10 @@ export function renderResult(api: AppApi, run: RunState): HTMLElement {
     el('dt', { textContent: '도달' }), el('dd', { textContent: `${run.act}막` }),
     el('dt', { textContent: '층수' }), el('dd', { textContent: `${run.stats.floors}층` }),
     el('dt', { textContent: '처치' }), el('dd', { textContent: `${run.stats.kills}` }),
+    // 최대 체력은 기물로 늘 수 있으므로 문파 기본값이 아니라 effectiveMaxHp 를
+    // 쓴다 — 맵 상단바가 같은 이유로 같은 함수를 거친다.
+    el('dt', { textContent: '체력' }),
+    el('dd', { textContent: `${run.player.hp} / ${effectiveMaxHp(run, CONTENT)}` }),
   ]);
   root.append(stats);
 

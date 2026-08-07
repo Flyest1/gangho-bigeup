@@ -181,34 +181,39 @@ function runEnemyTurn(state: CombatState, content: ContentIndex): CombatState {
     if (!current || current.hp <= 0) continue;
 
     const poison = getStatus(current.status, 'poison');
-    let self: EnemyState = {
+    // 이 지역 변수는 원래 `self` 였다. 이름을 `actor`로 바꾼 것은 순수성 가드가
+    // `self`를 금지어에 넣었기 때문이다 — 브라우저에서 `self`는 window 와 같은
+    // 것을 가리켜 `self["document"]` 라는 우회로가 되고, 가드는 식별자 이름만
+    // 보므로 정당한 지역 변수와 그 우회로를 구분하지 못한다. 여기서는 "이번
+    // 차례를 행하는 적"이라는 뜻이라 `actor`가 오히려 더 정확한 이름이다.
+    let actor: EnemyState = {
       ...current,
       hp: Math.max(0, current.hp - poison),
       block: 0,
       status: tickStatus(current.status),
     };
-    s = { ...s, enemies: s.enemies.map((e) => (e.uid === self.uid ? self : e)) };
-    if (self.hp <= 0) continue;
+    s = { ...s, enemies: s.enemies.map((e) => (e.uid === actor.uid ? actor : e)) };
+    if (actor.hp <= 0) continue;
 
-    const def: EnemyDef = content.enemy(self.defId);
-    const intent = self.intent ?? consume((rng) => chooseIntent(def, self, rng));
+    const def: EnemyDef = content.enemy(actor.defId);
+    const intent = actor.intent ?? consume((rng) => chooseIntent(def, actor, rng));
     const action = findAction(def, intent.actionId);
     if (action) {
-      s = applyEnemyEffects(s, action.effects, self.uid, action.line);
-      const after = s.enemies.find((e) => e.uid === self.uid);
+      s = applyEnemyEffects(s, action.effects, actor.uid, action.line);
+      const after = s.enemies.find((e) => e.uid === actor.uid);
       if (after) {
-        self = {
+        actor = {
           ...after,
           stance: nextStance(after.stance, action.line),
           history: [...after.history, action.id].slice(-4),
         };
-        s = { ...s, enemies: s.enemies.map((e) => (e.uid === self.uid ? self : e)) };
+        s = { ...s, enemies: s.enemies.map((e) => (e.uid === actor.uid ? actor : e)) };
       }
     }
 
     if (s.player.hp <= 0) break;
 
-    const alive = s.enemies.find((e) => e.uid === self.uid);
+    const alive = s.enemies.find((e) => e.uid === actor.uid);
     if (alive && alive.hp > 0) {
       const nextIntent = consume((rng) => chooseIntent(def, alive, rng));
       s = { ...s, enemies: s.enemies.map((e) => (e.uid === alive.uid ? { ...e, intent: nextIntent } : e)) };
